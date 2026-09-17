@@ -1,0 +1,451 @@
+#!/usr/bin/python3
+"""Root-owned, fixed-action Docker helper for the Xiaomi Storage plugin."""
+
+import datetime as _dt
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+
+
+DOCKER = "/data/docker/docker"
+MAX_REQUEST = 131072
+NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+RESTART_POLICIES = {"no", "always", "unless-stopped", "on-failure"}
+
+
+class ApiError(Exception):
+    pass
+
+
+def reply(payload):
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+    sys.stdout.write("\n")
+
+
+def docker(args, timeout=300, allow_error=False):
+    env = os.environ.copy()
+    env.update({"PATH": "/data/docker:/usr/sbin:/usr/bin:/sbin:/bin", "LC_ALL": "C.UTF-8"})
+    try:
+        result = subprocess.run(
+            [DOCKER] + list(args),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise ApiError("Docker 操作超时")
+    if result.returncode and not allow_error:
+        message = (result.stderr or result.stdout or "Docker 操作失败").strip()
+        raise ApiError(message[-6000:])
+    return result
+
+
+def json_output(args, timeout=60):
+    text = docker(args, timeout=timeout).stdout.strip()
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise ApiError("Docker 返回了无法解析的数据")
+
+
+def required_text(request, field, limit=255):
+    value = request.get(field)
+    if not isinstance(value, str):
+        raise ApiError(f"缺少参数：{field}")
+    value = value.strip()
+    if not value or len(value) > limit or "\0" in value or "\r" in value or "\n" in value:
+        raise ApiError(f"参数无效：{field}")
+    return value
+
+
+def safe_target(request, field="target"):
+    value = required_text(request, field, 255)
+    if value.startswith("-") or not re.match(r"^[A-Za-z0-9][A-Za-z0-9_.:@/+\-]*$", value):
+        raise ApiError("Docker 资源名称或 ID 无效")
+    return value
+
+
+def bounded_list(request, field, maximum):
+    value = request.get(field, [])
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > maximum:
+        raise ApiError(f"参数无效：{field}")
+    return value
+
+
+def inspect_containers(ids):
+    if not ids:
+        return []
+    raw = json_output(["container", "inspect"] + ids, timeout=90) or []
+    containers = []
+    for item in raw:
+        state = item.get("State") or {}
+        config = item.get("Config") or {}
+        host = item.get("HostConfig") or {}
+        network_settings = item.get("NetworkSettings") or {}
+        networks = network_settings.get("Networks") or {}
+        mounts = item.get("Mounts") or []
+        ports = network_settings.get("Ports") or {}
+        containers.append({
+            "id": (item.get("Id") or "")[:12],
+            "fullId": item.get("Id") or "",
+            "name": (item.get("Name") or "").lstrip("/"),
+            "image": config.get("Image") or "",
+            "imageId": item.get("Image") or "",
+            "created": item.get("Created") or "",
+            "state": state.get("Status") or "unknown",
+            "running": bool(state.get("Running")),
+            "paused": bool(state.get("Paused")),
+            "restarting": bool(state.get("Restarting")),
+            "exitCode": state.get("ExitCode"),
+            "startedAt": state.get("StartedAt") or "",
+            "finishedAt": state.get("FinishedAt") or "",
+            "restartPolicy": (host.get("RestartPolicy") or {}).get("Name") or "no",
+            "command": config.get("Cmd") or [],
+            "entrypoint": config.get("Entrypoint") or [],
+            "ports": ports,
+            "mounts": [{
+                "type": m.get("Type") or "",
+                "name": m.get("Name") or "",
+                "source": m.get("Source") or "",
+                "destination": m.get("Destination") or "",
+                "rw": bool(m.get("RW")),
+            } for m in mounts],
+            "networks": [{
+                "name": name,
+                "ip": (value or {}).get("IPAddress") or "",
+                "gateway": (value or {}).get("Gateway") or "",
+                "mac": (value or {}).get("MacAddress") or "",
+            } for name, value in networks.items()],
+        })
+    containers.sort(key=lambda value: value["name"].lower())
+    return containers
+
+
+def container_list(_request):
+    result = docker(["container", "ls", "-aq", "--no-trunc"], timeout=30)
+    ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return {"containers": inspect_containers(ids)}
+
+
+def container_stats(_request):
+    result = docker(["stats", "--no-stream", "--format", "{{json .}}"], timeout=60)
+    rows = []
+    for line in result.stdout.splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return {"stats": rows}
+
+
+def container_action(request):
+    target = safe_target(request)
+    operation = required_text(request, "operation", 32)
+    commands = {
+        "start": ["container", "start", target],
+        "stop": ["container", "stop", "-t", "10", target],
+        "restart": ["container", "restart", "-t", "10", target],
+        "pause": ["container", "pause", target],
+        "unpause": ["container", "unpause", target],
+        "kill": ["container", "kill", target],
+    }
+    if operation == "remove":
+        command = ["container", "rm"]
+        if bool(request.get("force")):
+            command.append("--force")
+        if bool(request.get("volumes")):
+            command.append("--volumes")
+        command.append(target)
+    elif operation == "rename":
+        new_name = required_text(request, "newName", 128)
+        if not NAME_RE.fullmatch(new_name):
+            raise ApiError("新容器名称无效")
+        command = ["container", "rename", target, new_name]
+    else:
+        command = commands.get(operation)
+    if not command:
+        raise ApiError("不支持的容器操作")
+    output = docker(command, timeout=120).stdout.strip()
+    return {"message": output or "操作完成"}
+
+
+def container_logs(request):
+    target = safe_target(request)
+    try:
+        tail = int(request.get("tail", 200))
+    except (TypeError, ValueError):
+        tail = 200
+    tail = max(20, min(tail, 1000))
+    result = docker(["container", "logs", "--timestamps", "--tail", str(tail), target], timeout=60, allow_error=True)
+    logs = result.stdout
+    if result.stderr:
+        logs += result.stderr
+    if result.returncode and not logs.strip():
+        raise ApiError("无法读取容器日志")
+    return {"logs": logs[-262144:], "tail": tail}
+
+
+def container_inspect(request):
+    target = safe_target(request)
+    containers = inspect_containers([target])
+    if not containers:
+        raise ApiError("未找到容器")
+    return {"container": containers[0]}
+
+
+def validate_cli_value(value, field, limit=512):
+    if not isinstance(value, str):
+        raise ApiError(f"参数无效：{field}")
+    value = value.strip()
+    if not value or len(value) > limit or any(char in value for char in ("\0", "\r", "\n")):
+        raise ApiError(f"参数无效：{field}")
+    return value
+
+
+def container_create(request):
+    image = safe_target(request, "image")
+    name = request.get("name", "")
+    if name:
+        name = validate_cli_value(name, "name", 128)
+        if not NAME_RE.fullmatch(name):
+            raise ApiError("容器名称无效")
+    restart = request.get("restartPolicy", "unless-stopped")
+    if restart not in RESTART_POLICIES:
+        raise ApiError("重启策略无效")
+    network = request.get("network", "bridge")
+    network = validate_cli_value(network, "network", 128)
+    if not NAME_RE.fullmatch(network):
+        raise ApiError("网络名称无效")
+
+    args = ["container", "create"]
+    if name:
+        args += ["--name", name]
+    args += ["--restart", restart, "--network", network]
+    if bool(request.get("readOnly")):
+        args.append("--read-only")
+
+    for value in bounded_list(request, "ports", 32):
+        value = validate_cli_value(value, "ports", 128)
+        if any(char.isspace() for char in value) or value.startswith("-"):
+            raise ApiError("端口映射格式无效")
+        args += ["--publish", value]
+    for value in bounded_list(request, "volumes", 32):
+        value = validate_cli_value(value, "volumes", 1024)
+        if value.startswith("-"):
+            raise ApiError("挂载格式无效")
+        args += ["--volume", value]
+    for value in bounded_list(request, "env", 64):
+        value = validate_cli_value(value, "env", 4096)
+        key = value.split("=", 1)[0]
+        if not ENV_KEY_RE.fullmatch(key):
+            raise ApiError(f"环境变量名称无效：{key}")
+        args += ["--env", value]
+
+    if bool(request.get("pull")):
+        check = docker(["image", "inspect", image], timeout=30, allow_error=True)
+        if check.returncode:
+            docker(["image", "pull", image], timeout=1800)
+
+    args.append(image)
+    command = request.get("command", "")
+    if isinstance(command, str) and command.strip():
+        try:
+            args += shlex.split(command)
+        except ValueError:
+            raise ApiError("启动命令的引号不完整")
+    elif isinstance(command, list):
+        args += [validate_cli_value(value, "command", 1024) for value in command]
+    elif command not in (None, ""):
+        raise ApiError("启动命令格式无效")
+
+    container_id = docker(args, timeout=300).stdout.strip()
+    if bool(request.get("start", True)):
+        docker(["container", "start", container_id], timeout=120)
+    return {"id": container_id[:12], "message": "容器已创建并启动" if request.get("start", True) else "容器已创建"}
+
+
+def image_list(_request):
+    result = docker(["image", "ls", "-aq", "--no-trunc"], timeout=30)
+    ids = list(dict.fromkeys(line.strip() for line in result.stdout.splitlines() if line.strip()))
+    raw = json_output(["image", "inspect"] + ids, timeout=120) if ids else []
+    images = []
+    for item in raw or []:
+        images.append({
+            "id": (item.get("Id") or "").replace("sha256:", "")[:12],
+            "fullId": item.get("Id") or "",
+            "tags": item.get("RepoTags") or [],
+            "digests": item.get("RepoDigests") or [],
+            "created": item.get("Created") or "",
+            "size": item.get("Size") or 0,
+            "virtualSize": item.get("VirtualSize") or item.get("Size") or 0,
+            "architecture": item.get("Architecture") or "",
+            "os": item.get("Os") or "",
+        })
+    images.sort(key=lambda value: (value["tags"] or [value["id"]])[0].lower())
+    return {"images": images}
+
+
+def image_pull(request):
+    image = safe_target(request, "image")
+    result = docker(["image", "pull", image], timeout=1800)
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    return {"message": lines[-1] if lines else "镜像拉取完成", "output": "\n".join(lines[-40:])}
+
+
+def image_remove(request):
+    target = safe_target(request)
+    args = ["image", "rm"]
+    if bool(request.get("force")):
+        args.append("--force")
+    args.append(target)
+    result = docker(args, timeout=300)
+    return {"message": result.stdout.strip() or "镜像已删除"}
+
+
+def volume_list(_request):
+    result = docker(["volume", "ls", "-q"], timeout=30)
+    names = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    raw = json_output(["volume", "inspect"] + names, timeout=90) if names else []
+    volumes = []
+    for item in raw or []:
+        volumes.append({
+            "name": item.get("Name") or "",
+            "driver": item.get("Driver") or "",
+            "mountpoint": item.get("Mountpoint") or "",
+            "created": item.get("CreatedAt") or "",
+            "scope": item.get("Scope") or "",
+            "labels": item.get("Labels") or {},
+            "options": item.get("Options") or {},
+        })
+    volumes.sort(key=lambda value: value["name"].lower())
+    return {"volumes": volumes}
+
+
+def volume_create(request):
+    name = required_text(request, "name", 128)
+    if not NAME_RE.fullmatch(name):
+        raise ApiError("Volume 名称无效")
+    result = docker(["volume", "create", "--driver", "local", name], timeout=60)
+    return {"name": result.stdout.strip(), "message": "Volume 已创建"}
+
+
+def volume_remove(request):
+    name = safe_target(request, "target")
+    args = ["volume", "rm"]
+    if bool(request.get("force")):
+        args.append("--force")
+    args.append(name)
+    docker(args, timeout=120)
+    return {"message": "Volume 已删除"}
+
+
+def network_list(_request):
+    result = docker(["network", "ls", "-q"], timeout=30)
+    ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    raw = json_output(["network", "inspect"] + ids, timeout=90) if ids else []
+    networks = []
+    for item in raw or []:
+        ipam = item.get("IPAM") or {}
+        networks.append({
+            "id": (item.get("Id") or "")[:12],
+            "name": item.get("Name") or "",
+            "driver": item.get("Driver") or "",
+            "scope": item.get("Scope") or "",
+            "internal": bool(item.get("Internal")),
+            "attachable": bool(item.get("Attachable")),
+            "subnets": [entry.get("Subnet") or "" for entry in (ipam.get("Config") or []) if entry.get("Subnet")],
+        })
+    networks.sort(key=lambda value: value["name"].lower())
+    return {"networks": networks}
+
+
+def system_summary(_request):
+    info = json_output(["info", "--format", "{{json .}}"], timeout=60) or {}
+    version = json_output(["version", "--format", "{{json .}}"], timeout=60) or {}
+    df_result = docker(["system", "df", "--format", "{{json .}}"], timeout=60, allow_error=True)
+    disk = []
+    if not df_result.returncode:
+        for line in df_result.stdout.splitlines():
+            try:
+                disk.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return {
+        "serverVersion": info.get("ServerVersion") or ((version.get("Server") or {}).get("Version")) or "",
+        "operatingSystem": info.get("OperatingSystem") or "",
+        "architecture": info.get("Architecture") or "",
+        "cpus": info.get("NCPU") or 0,
+        "memory": info.get("MemTotal") or 0,
+        "containers": info.get("Containers") or 0,
+        "running": info.get("ContainersRunning") or 0,
+        "paused": info.get("ContainersPaused") or 0,
+        "stopped": info.get("ContainersStopped") or 0,
+        "images": info.get("Images") or 0,
+        "dockerRootDir": info.get("DockerRootDir") or "",
+        "name": info.get("Name") or "",
+        "disk": disk,
+        "checkedAt": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    }
+
+
+ACTIONS = {
+    "system_summary": system_summary,
+    "container_list": container_list,
+    "container_stats": container_stats,
+    "container_action": container_action,
+    "container_logs": container_logs,
+    "container_inspect": container_inspect,
+    "container_create": container_create,
+    "image_list": image_list,
+    "image_pull": image_pull,
+    "image_remove": image_remove,
+    "volume_list": volume_list,
+    "volume_create": volume_create,
+    "volume_remove": volume_remove,
+    "network_list": network_list,
+}
+
+
+def main():
+    if os.geteuid() != 0:
+        raise ApiError("权限助手必须以 root 身份运行")
+    if len(sys.argv) != 1:
+        raise ApiError("权限助手不接受命令行参数")
+    raw = sys.stdin.buffer.read(MAX_REQUEST + 1)
+    if len(raw) > MAX_REQUEST:
+        raise ApiError("请求过大")
+    try:
+        request = json.loads(raw.decode("utf-8")) if raw.strip() else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ApiError("请求不是有效 JSON")
+    if not isinstance(request, dict):
+        raise ApiError("请求格式无效")
+    action = request.get("action")
+    handler = ACTIONS.get(action)
+    if not handler:
+        raise ApiError("未知操作")
+    payload = handler(request)
+    payload["ok"] = True
+    reply(payload)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except ApiError as error:
+        reply({"ok": False, "error": str(error)})
+    except Exception as error:
+        reply({"ok": False, "error": f"内部错误：{error}"})
+

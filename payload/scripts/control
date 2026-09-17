@@ -1,0 +1,22 @@
+#!/bin/sh
+
+PLUGIN_USER=${PLUG_USER:-$(id -un)}
+PLUGIN_HOME=${PLUG_HOME_DIR:-/home/$PLUGIN_USER/plugin/dockermanager}
+REGISTER="$PLUGIN_HOME/src/files/register.sh"
+
+case "${1:-}" in
+  enable|start|postinstall|postupgrade)
+    [ -x "$REGISTER" ] && "$REGISTER" running true "$PLUGIN_USER" || true
+    ;;
+  disable|stop|preuninstall|preupgrade)
+    [ -x "$REGISTER" ] && "$REGISTER" stopped false "$PLUGIN_USER" || true
+    ;;
+  restart)
+    [ -x "$REGISTER" ] && "$REGISTER" running true "$PLUGIN_USER" || true
+    ;;
+  status)
+    [ -x "$REGISTER" ] && [ -x /data/plugin/.dockermanager-system/docker-manager-helper ]
+    ;;
+  *) exit 0 ;;
+esac
+

@@ -1,0 +1,16 @@
+{
+  "title": "docker",
+  "desc": "容器、镜像与存储卷管理",
+  "icon": "/dockermanager.icon",
+  "type": "url",
+  "permission": ["admin"],
+  "dev_type": [1, 2, 3, 4],
+  "url": [
+    {
+      "dev_type": [1, 2, 3, 4],
+      "url": "/index.html"
+    }
+  ],
+  "sortid": 19,
+  "widget": []
+}

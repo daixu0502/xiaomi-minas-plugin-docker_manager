@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#071827">
+  <title>docker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="shell" class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">XIAOMI SMART STORAGE</div>
+        <h1>docker manager</h1>
+      </div>
+      <button id="refreshButton" class="icon-button" type="button" aria-label="刷新">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M6.1 9a7 7 0 0 1 11.2-2.1L20 11M4 13l2.7 4.1A7 7 0 0 0 17.9 15"/></svg>
+      </button>
+    </header>
+
+    <nav class="tabs" aria-label="功能页面">
+      <button class="tab active" data-page="overview">概览</button>
+      <button class="tab" data-page="containers">容器</button>
+      <button class="tab" data-page="images">镜像</button>
+      <button class="tab" data-page="volumes">存储卷</button>
+    </nav>
+
+    <section id="page-overview" class="page active">
+      <div class="hero-card">
+        <div>
+          <span id="engineBadge" class="status-pill neutral"><i></i>正在连接</span>
+          <h2>Docker 引擎</h2>
+          <p id="engineSubtitle">正在读取设备信息…</p>
+        </div>
+        <div class="docker-mark" aria-hidden="true"><span>▦</span></div>
+      </div>
+      <div class="metric-grid">
+        <button class="metric-card" data-go="containers"><strong id="runningMetric">—</strong><span>运行中</span></button>
+        <button class="metric-card" data-go="containers"><strong id="stoppedMetric">—</strong><span>已停止</span></button>
+        <button class="metric-card" data-go="images"><strong id="imageMetric">—</strong><span>镜像</span></button>
+        <button class="metric-card" data-go="volumes"><strong id="volumeMetric">—</strong><span>存储卷</span></button>
+      </div>
+      <article class="panel">
+        <div class="panel-heading"><div><h3>系统信息</h3><p>Docker 服务与存储位置</p></div></div>
+        <div id="systemInfo" class="detail-list loading-row">正在读取…</div>
+      </article>
+      <article class="panel">
+        <div class="panel-heading"><div><h3>空间占用</h3><p>Docker system df 汇总</p></div></div>
+        <div id="diskUsage" class="stack loading-row">正在读取…</div>
+      </article>
+    </section>
+
+    <section id="page-containers" class="page">
+      <div class="section-heading">
+        <div><h2>容器</h2><p id="containerSummary">读取容器中…</p></div>
+        <button id="openCreateContainer" class="primary-button" type="button">＋ 创建</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter active" data-filter="all">全部</button>
+        <button class="filter" data-filter="running">运行中</button>
+        <button class="filter" data-filter="stopped">已停止</button>
+      </div>
+      <div id="containerList" class="stack loading-row">正在读取…</div>
+    </section>
+
+    <section id="page-images" class="page">
+      <div class="section-heading"><div><h2>镜像</h2><p id="imageSummary">读取镜像中…</p></div></div>
+      <article class="panel compact">
+        <label class="field-label" for="pullImage">拉取镜像</label>
+        <div class="inline-form">
+          <input id="pullImage" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例如 nginx:latest">
+          <button id="pullImageButton" class="primary-button" type="button">拉取</button>
+        </div>
+      </article>
+      <div id="imageList" class="stack loading-row">正在读取…</div>
+    </section>
+
+    <section id="page-volumes" class="page">
+      <div class="section-heading"><div><h2>存储卷</h2><p id="volumeSummary">读取存储卷中…</p></div></div>
+      <article class="panel compact">
+        <label class="field-label" for="volumeName">创建存储卷</label>
+        <div class="inline-form">
+          <input id="volumeName" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例如 app-data">
+          <button id="createVolumeButton" class="primary-button" type="button">创建</button>
+        </div>
+      </article>
+      <div id="volumeList" class="stack loading-row">正在读取…</div>
+    </section>
+
+    <footer id="pluginVersion">插件版本 1.0.4</footer>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" hidden></div>
+
+  <section id="createContainerModal" class="modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-handle"></div>
+    <div class="modal-heading"><div><h2>创建容器</h2><p>常用 Docker 参数</p></div><button class="close-modal" type="button">×</button></div>
+    <div class="modal-body form-grid">
+      <label><span>容器名称</span><input id="containerName" type="text" placeholder="my-app"></label>
+      <label><span>镜像 *</span><input id="containerImage" type="text" placeholder="nginx:latest"></label>
+      <label><span>重启策略</span><select id="restartPolicy"><option value="unless-stopped">unless-stopped</option><option value="always">always</option><option value="on-failure">on-failure</option><option value="no">no</option></select></label>
+      <label><span>网络</span><select id="containerNetwork"><option value="bridge">bridge</option></select></label>
+      <label class="wide"><span>端口映射（每行一条）</span><textarea id="containerPorts" placeholder="8080:80&#10;8443:443"></textarea></label>
+      <label class="wide"><span>存储卷 / 目录挂载（每行一条）</span><textarea id="containerVolumes" placeholder="app-data:/data&#10;/nas/path:/config:ro"></textarea></label>
+      <label class="wide"><span>环境变量（每行一条）</span><textarea id="containerEnv" placeholder="TZ=Asia/Shanghai&#10;PUID=1000"></textarea></label>
+      <label class="wide"><span>启动命令（可选）</span><input id="containerCommand" type="text" placeholder="例如 --config /config/app.yaml"></label>
+      <label class="check-row"><input id="containerPull" type="checkbox" checked><span>镜像不存在时自动拉取</span></label>
+      <label class="check-row"><input id="containerStart" type="checkbox" checked><span>创建后立即启动</span></label>
+      <label class="check-row"><input id="containerReadOnly" type="checkbox"><span>只读根文件系统</span></label>
+    </div>
+    <div class="modal-actions"><button class="secondary-button close-modal" type="button">取消</button><button id="createContainerButton" class="primary-button" type="button">创建容器</button></div>
+  </section>
+
+  <section id="textModal" class="modal text-modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-handle"></div>
+    <div class="modal-heading"><div><h2 id="textModalTitle">详情</h2><p id="textModalSubtitle"></p></div><button class="close-modal" type="button">×</button></div>
+    <pre id="textModalContent" class="log-view"></pre>
+    <div class="modal-actions"><button class="secondary-button close-modal" type="button">关闭</button></div>
+  </section>
+
+  <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
