@@ -1,51 +1,42 @@
-# 小米智能存储 docker 插件
+# 小米智能存储 Docker 管理插件
 
-这是一个面向小米智能存储手机 APP 的本地 docker 管理插件，界面和操作方式参考 Portainer，但不启动额外管理容器，也不开放 Docker TCP 端口。
+在小米智能存储 APP 内管理 Docker，当前插件版本为 `1.0.4`，APP 显示名称为“docker”。
 
 ## 功能
 
-- Docker 引擎概览、容器/镜像/Volume 数量与空间占用
-- 查看全部容器及状态、端口、网络、挂载
-- 启动、停止、重启、暂停、继续和删除容器
-- 查看容器最近日志和结构化详情
-- 创建容器，支持镜像、名称、重启策略、网络、端口、挂载、环境变量和启动命令
-- 拉取、查看和删除镜像
-- 创建、查看和删除命名 Volume
-- iOS/Android 安全区适配和左右滑动切页
+- 查看 Docker 运行状态、版本和资源概览
+- 查看、创建、启动、停止、重启和删除容器
+- 查看容器日志、详情、端口和存储卷映射
+- 查看、拉取和删除镜像
+- 查看、创建和删除存储卷
+- 查看 Docker 网络
+- 小米风格移动端页面，兼容 Android 和 iOS
+
+插件页面不直接获得 root 权限，所有 Docker 操作均通过固定动作白名单助手执行。该插件不监听额外网络端口，因此可以安装给多个设备用户。
 
 ## 安装
 
-需要先确保：
-
-1. 小米智能存储已开启 root SSH。
-2. Docker 服务已安装并运行，设备存在 `/data/docker/docker`。
-3. 电脑可使用密钥执行 `ssh root@设备IP`。
-
-在 WSL 中进入本目录：
+从电脑的 WSL/Linux 运行：
 
 ```sh
+cd docker-manager-plugin
 bash deploy.sh
 ```
 
-安装器会提示输入设备 IP，扫描设备上的 `u数字` 用户并让你选择。也可以直接指定：
+也可以直接指定设备和插件用户：
 
 ```sh
 bash deploy.sh 192.168.31.100 u123456789
 ```
 
-也可以把整个目录复制到小米智能存储，在 root SSH 终端中运行 `bash deploy.sh`。本机安装不会询问 IP。
+在小米智能存储 root SSH 终端内运行：
 
-## 权限与安全
-
-网页不会直接访问 `/var/run/docker.sock`。安装器会创建 root 所有的：
-
-```text
-/data/plugin/.dockermanager-system/docker-manager-helper
+```sh
+cd /home/rootx/docker-manager-plugin
+bash deploy.sh u123456789
 ```
 
-插件用户只能通过 `sudo` 调用这个固定助手，不能附加命令行参数。助手只接受大小受限的 JSON，并把操作映射到预先实现的 Docker 子命令；所有外部输入都通过参数数组传给 Docker，不经过 Shell 拼接或 `eval`。
-
-Docker 管理本身属于高权限操作：容器挂载主机目录、映射端口或运行不可信镜像都可能影响设备安全。请只安装可信镜像，并谨慎确认删除操作。
+设备必须已经安装并启用 `/data/docker/docker`。
 
 ## 卸载
 
@@ -53,4 +44,16 @@ Docker 管理本身属于高权限操作：容器挂载主机目录、映射端�
 bash uninstall.sh
 ```
 
-卸载器会提示输入设备 IP，并扫描哪些用户安装了 docker 插件。卸载只删除插件界面、清单、权限助手授权和插件文件，不会删除现有容器、镜像、Volume 或 Docker 数据。
+或指定设备与用户：
+
+```sh
+bash uninstall.sh 192.168.31.100 u123456789
+```
+
+设备本机运行时：
+
+```sh
+bash uninstall.sh u123456789
+```
+
+卸载只移除所选用户的 APP 插件、权限规则和管理助手引用，不会删除 Docker 容器、镜像、网络或存储卷。
