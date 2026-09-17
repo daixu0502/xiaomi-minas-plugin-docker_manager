@@ -21,7 +21,7 @@
 2. Docker 服务已安装并运行，设备存在 `/data/docker/docker`。
 3. 电脑可使用密钥执行 `ssh root@设备IP`。
 
-在电脑或 WSL 中进入本目录：
+在 WSL 中进入本目录：
 
 ```sh
 bash deploy.sh
