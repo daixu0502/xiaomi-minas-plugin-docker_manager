@@ -23,6 +23,7 @@ serve_frontend() {
     request_path=${REQUEST_URI:-/index.html}; request_path=${request_path%%\?*}
     case "$request_path" in
         */app.js) static_header 'application/javascript; charset=utf-8'; cat "$SCRIPT_DIR/app.js" ;;
+        */client-bridge.js) static_header 'application/javascript; charset=utf-8'; cat "$SCRIPT_DIR/client-bridge.js" ;;
         */style.css) static_header 'text/css; charset=utf-8'; cat "$SCRIPT_DIR/style.css" ;;
         *) static_header 'text/html; charset=utf-8'; cat "$SCRIPT_DIR/index.html" ;;
     esac
@@ -60,7 +61,7 @@ printf '%s' "$body" | jq empty >/dev/null 2>&1 || json_error "请求不是有效
 request=$(printf '%s' "$body" | jq --arg action "$action" '. + {action:$action}') || json_error "无法处理请求"
 response=$(printf '%s' "$request" | sudo -n "$HELPER" 2>/dev/null) || json_error "无法调用 Docker 权限助手"
 printf '%s' "$response" | jq empty >/dev/null 2>&1 || json_error "权限助手返回了无法解析的数据"
-plugin_version=$(jq -r '.version // "1.0.4"' "$INFO_FILE" 2>/dev/null || printf '1.0.4')
+plugin_version=$(jq -r '.version // "1.0.10"' "$INFO_FILE" 2>/dev/null || printf '1.0.10')
 
 json_header
 printf '%s' "$response" | jq --arg pluginVersion "$plugin_version" '. + {pluginVersion:$pluginVersion}'

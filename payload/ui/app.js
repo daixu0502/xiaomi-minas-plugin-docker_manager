@@ -46,12 +46,17 @@
   }
 
   function api(action, payload) {
-    return fetch('dockermanager.cgi?action=' + encodeURIComponent(action), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-      body: JSON.stringify(payload || {}),
-      cache: 'no-store',
-      credentials: 'same-origin'
+    return window.XiaomiPluginClient.request({
+      plugin: 'dockermanager',
+      cgi: 'dockermanager.cgi',
+      action: action,
+      options: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        body: JSON.stringify(payload || {}),
+        cache: 'no-store',
+        credentials: 'same-origin'
+      }
     }).then(function (response) {
       return response.text().then(function (text) {
         var data;

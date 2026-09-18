@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#071827">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.0.10">
 </head>
 <body>
   <main id="shell" class="shell">
@@ -90,7 +90,7 @@
       <div id="volumeList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <footer id="pluginVersion">插件版本 1.0.4</footer>
+    <footer id="pluginVersion">插件版本 1.0.10</footer>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden></div>
@@ -123,6 +123,7 @@
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
+  <script src="client-bridge.js?v=1.0.10"></script>
   <script src="app.js"></script>
 </body>
 </html>

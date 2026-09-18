@@ -3,7 +3,7 @@ set -eu
 
 PLUGIN_USER="${1:-}"
 PLUGIN_NAME="dockermanager"
-PLUGIN_VERSION="1.0.4"
+PLUGIN_VERSION="1.0.10"
 BUNDLE_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PAYLOAD_DIR="$BUNDLE_DIR/payload"
 
@@ -60,7 +60,7 @@ cp -R "$PAYLOAD_DIR/files" "$stage_src/files"
 cp -R "$PAYLOAD_DIR/ui" "$stage_src/ui"
 cp -R "$PAYLOAD_DIR/system" "$stage_src/system"
 chmod 0755 "$stage_src/files/"*.sh "$stage_src/ui/"*.cgi "$stage_src/system/docker-manager-helper"
-chmod 0644 "$stage_src/ui/index.html" "$stage_src/ui/app.js" "$stage_src/ui/style.css" "$stage_src/ui/config"
+chmod 0644 "$stage_src/ui/index.html" "$stage_src/ui/app.js" "$stage_src/ui/client-bridge.js" "$stage_src/ui/style.css" "$stage_src/ui/config"
 
 if [ -d "$SRC_DIR" ] && [ ! -L "$SRC_DIR" ]; then mv "$SRC_DIR" "$old_src"; fi
 mv "$stage_src" "$SRC_DIR"
@@ -84,7 +84,7 @@ info_tmp="$TMP_DIR/INFO.$$"
 jq -n --arg version "$PLUGIN_VERSION" --arg abstract "$abstract" --argjson timestamp "$timestamp" --argjson size "$plugin_size" '{
   plugin:"dockermanager", name:"docker", id:19091, version:$version, tags:["tool"],
   timestamp:$timestamp, desc:"容器、镜像与存储卷管理", developer:"Local", publisher:"Local",
-  changelog:"修复主页面刷新图标在圆角按钮内未居中的问题",
+  changelog:"修复电脑端底部遮挡并优化按钮和文字尺寸",
   system:false, size:$size, port:"", type:"standard", forceupgrade:false,
   ext:{admin:true}, hotplug:[], abstract:$abstract
 }' > "$info_tmp"
