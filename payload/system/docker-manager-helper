@@ -8,9 +8,12 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 
 
 DOCKER = "/data/docker/docker"
+SYSTEMCTL = "/usr/bin/systemctl"
+BULK_STATUS = "/run/dockermanager-bulk-status.json"
 MAX_REQUEST = 131072
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -46,6 +49,75 @@ def docker(args, timeout=300, allow_error=False):
         message = (result.stderr or result.stdout or "Docker 操作失败").strip()
         raise ApiError(message[-6000:])
     return result
+
+
+def systemctl(args, timeout=180, allow_error=False):
+    try:
+        result = subprocess.run(
+            [SYSTEMCTL] + list(args),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            errors="replace",
+            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LC_ALL": "C.UTF-8"},
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise ApiError("Docker 服务操作超时")
+    if result.returncode and not allow_error:
+        message = (result.stderr or result.stdout or "Docker 服务操作失败").strip()
+        raise ApiError(message[-6000:])
+    return result
+
+
+def engine_is_running():
+    result = systemctl(["is-active", "docker.service"], timeout=20, allow_error=True)
+    return result.stdout.strip() == "active"
+
+
+def engine_status():
+    result = systemctl(["is-active", "docker.service"], timeout=20, allow_error=True)
+    state = result.stdout.strip() or "unknown"
+    return {
+        "engineRunning": state == "active",
+        "serviceState": state,
+        "socketAvailable": os.path.exists("/run/docker.sock") or os.path.exists("/var/run/docker.sock"),
+    }
+
+
+def wait_for_engine(timeout=60):
+    deadline = time.monotonic() + timeout
+    last_error = ""
+    while time.monotonic() < deadline:
+        if engine_is_running():
+            result = docker(["info", "--format", "{{json .ServerVersion}}"], timeout=15, allow_error=True)
+            if result.returncode == 0:
+                return
+            last_error = (result.stderr or result.stdout).strip()
+        time.sleep(1)
+    raise ApiError(last_error or "Docker 服务未在预期时间内就绪")
+
+
+def engine_action(request):
+    operation = required_text(request, "operation", 16)
+    if operation == "start":
+        systemctl(["start", "docker.socket", "docker.service"])
+        wait_for_engine()
+        message = "Docker 已启动"
+    elif operation == "stop":
+        systemctl(["stop", "docker.service", "docker.socket"])
+        message = "Docker 已停止"
+    elif operation == "restart":
+        systemctl(["start", "docker.socket"])
+        systemctl(["restart", "docker.service"])
+        wait_for_engine()
+        message = "Docker 已重启"
+    else:
+        raise ApiError("不支持的 Docker 服务操作")
+    status = engine_status()
+    status["message"] = message
+    return status
 
 
 def json_output(args, timeout=60):
@@ -179,6 +251,154 @@ def container_action(request):
         raise ApiError("不支持的容器操作")
     output = docker(command, timeout=120).stdout.strip()
     return {"message": output or "操作完成"}
+
+
+def write_bulk_status(payload):
+    payload = dict(payload)
+    payload["updatedAt"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    temporary = "%s.%d" % (BULK_STATUS, os.getpid())
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+        handle.write("\n")
+    os.chmod(temporary, 0o600)
+    os.replace(temporary, BULK_STATUS)
+
+
+def read_bulk_status():
+    try:
+        with open(BULK_STATUS, "r", encoding="utf-8") as handle:
+            value = json.load(handle)
+        return value if isinstance(value, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def process_exists(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def run_bulk_worker(task_id, operation, ids, command, verb):
+    result = None
+    pending = set(ids)
+    state_error = ""
+    try:
+        result = docker(command, timeout=600, allow_error=True)
+        wanted_running = operation in {"start", "restart"}
+        targets = set(ids)
+        deadline = time.monotonic() + 150
+        while True:
+            state_result = docker(["container", "ls", "-q", "--no-trunc"], timeout=30, allow_error=True)
+            if state_result.returncode == 0:
+                running = {line.strip() for line in state_result.stdout.splitlines() if line.strip()}
+                pending = targets - running if wanted_running else targets & running
+                if not pending:
+                    message = "已%s %d 个容器" % (verb, len(ids))
+                    if result.returncode:
+                        message += "（已确认最终状态）"
+                    write_bulk_status({
+                        "taskId": task_id, "state": "success", "operation": operation,
+                        "count": len(ids), "message": message,
+                    })
+                    return
+            else:
+                state_error = (state_result.stderr or state_result.stdout).strip()
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(1)
+
+        command_error = (result.stderr or result.stdout).strip()
+        detail = command_error or state_error
+        message = "仍有 %d 个容器未%s" % (len(pending), verb)
+        if detail:
+            message += "：" + detail[-3000:]
+        write_bulk_status({
+            "taskId": task_id, "state": "error", "operation": operation,
+            "count": len(ids), "message": message,
+        })
+    except Exception as error:
+        write_bulk_status({
+            "taskId": task_id, "state": "error", "operation": operation,
+            "count": len(ids), "message": "批量操作失败：%s" % error,
+        })
+
+
+def launch_bulk_worker(task_id, operation, ids, command, verb):
+    read_fd, write_fd = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        try:
+            os.close(write_fd)
+            devnull = os.open(os.devnull, os.O_RDWR)
+            os.dup2(devnull, 0)
+            os.dup2(devnull, 1)
+            os.dup2(devnull, 2)
+            if devnull > 2:
+                os.close(devnull)
+            os.setsid()
+            os.read(read_fd, 1)
+            os.close(read_fd)
+            run_bulk_worker(task_id, operation, ids, command, verb)
+        finally:
+            os._exit(0)
+    os.close(read_fd)
+    try:
+        write_bulk_status({
+            "taskId": task_id, "state": "running", "operation": operation,
+            "count": len(ids), "pid": pid, "message": "正在%s全部容器…" % verb,
+        })
+        os.write(write_fd, b"1")
+    finally:
+        os.close(write_fd)
+
+
+def container_bulk_action(request):
+    operation = required_text(request, "operation", 16)
+    active = read_bulk_status()
+    if active and active.get("state") == "running" and process_exists(active.get("pid")):
+        if active.get("operation") != operation:
+            raise ApiError("另一个批量容器操作正在进行，请等待完成")
+        return {
+            "accepted": True, "taskId": active.get("taskId"),
+            "count": active.get("count", 0), "message": active.get("message", "批量操作正在进行"),
+        }
+    if operation == "stop":
+        result = docker(["container", "ls", "-q", "--no-trunc"], timeout=30)
+        ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        command = ["container", "stop", "-t", "20"] + ids
+        verb = "停止"
+    elif operation in {"start", "restart"}:
+        result = docker(["container", "ls", "-aq", "--no-trunc"], timeout=30)
+        ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        command = ["container", operation]
+        if operation == "restart":
+            command += ["-t", "20"]
+        command += ids
+        verb = "启动" if operation == "start" else "重启"
+    else:
+        raise ApiError("不支持的批量容器操作")
+    if not ids:
+        return {"count": 0, "message": "没有可%s的容器" % verb}
+    task_id = "%d-%s" % (int(time.time() * 1000), os.urandom(4).hex())
+    launch_bulk_worker(task_id, operation, ids, command, verb)
+    return {
+        "accepted": True, "taskId": task_id, "count": len(ids),
+        "message": "已开始%s %d 个容器" % (verb, len(ids)),
+    }
+
+
+def container_bulk_status(request):
+    task_id = required_text(request, "taskId", 80)
+    status = read_bulk_status()
+    if not status or status.get("taskId") != task_id:
+        raise ApiError("未找到批量操作任务")
+    if status.get("state") == "running" and not process_exists(status.get("pid")):
+        status.update({"state": "error", "message": "批量操作进程意外结束"})
+        write_bulk_status(status)
+    return {key: value for key, value in status.items() if key != "pid"}
 
 
 def container_logs(request):
@@ -372,6 +592,15 @@ def network_list(_request):
 
 
 def system_summary(_request):
+    status = engine_status()
+    if not status["engineRunning"]:
+        return {
+            **status,
+            "serverVersion": "", "operatingSystem": "", "architecture": "", "cpus": 0,
+            "memory": 0, "containers": 0, "running": 0, "paused": 0, "stopped": 0,
+            "images": 0, "dockerRootDir": "", "name": "", "disk": [],
+            "checkedAt": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        }
     info = json_output(["info", "--format", "{{json .}}"], timeout=60) or {}
     version = json_output(["version", "--format", "{{json .}}"], timeout=60) or {}
     df_result = docker(["system", "df", "--format", "{{json .}}"], timeout=60, allow_error=True)
@@ -383,6 +612,7 @@ def system_summary(_request):
             except json.JSONDecodeError:
                 continue
     return {
+        **status,
         "serverVersion": info.get("ServerVersion") or ((version.get("Server") or {}).get("Version")) or "",
         "operatingSystem": info.get("OperatingSystem") or "",
         "architecture": info.get("Architecture") or "",
@@ -401,10 +631,13 @@ def system_summary(_request):
 
 
 ACTIONS = {
+    "engine_action": engine_action,
     "system_summary": system_summary,
     "container_list": container_list,
     "container_stats": container_stats,
     "container_action": container_action,
+    "container_bulk_action": container_bulk_action,
+    "container_bulk_status": container_bulk_status,
     "container_logs": container_logs,
     "container_inspect": container_inspect,
     "container_create": container_create,
@@ -448,4 +681,3 @@ if __name__ == "__main__":
         reply({"ok": False, "error": str(error)})
     except Exception as error:
         reply({"ok": False, "error": f"内部错误：{error}"})
-

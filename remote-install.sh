@@ -3,7 +3,7 @@ set -eu
 
 PLUGIN_USER="${1:-}"
 PLUGIN_NAME="dockermanager"
-PLUGIN_VERSION="1.0.10"
+PLUGIN_VERSION="1.0.14"
 BUNDLE_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PAYLOAD_DIR="$BUNDLE_DIR/payload"
 
@@ -17,7 +17,6 @@ for command_name in jq sha256sum plugincenter flock python3 sudo visudo systemct
     command -v "$command_name" >/dev/null 2>&1 || fail "设备缺少命令：$command_name"
 done
 [ -x /data/docker/docker ] || fail "未找到 /data/docker/docker，请先安装或启用 Docker"
-[ -S /var/run/docker.sock ] || fail "Docker socket 不存在：/var/run/docker.sock"
 
 PLUGIN_ROOT="/home/$PLUGIN_USER/plugin"
 PLUGIN_HOME="$PLUGIN_ROOT/$PLUGIN_NAME"
@@ -84,7 +83,7 @@ info_tmp="$TMP_DIR/INFO.$$"
 jq -n --arg version "$PLUGIN_VERSION" --arg abstract "$abstract" --argjson timestamp "$timestamp" --argjson size "$plugin_size" '{
   plugin:"dockermanager", name:"docker", id:19091, version:$version, tags:["tool"],
   timestamp:$timestamp, desc:"容器、镜像与存储卷管理", developer:"Local", publisher:"Local",
-  changelog:"修复电脑端底部遮挡并优化按钮和文字尺寸",
+  changelog:"启停与重启操作改为按钮内显示进度动画",
   system:false, size:$size, port:"", type:"standard", forceupgrade:false,
   ext:{admin:true}, hotplug:[], abstract:$abstract
 }' > "$info_tmp"

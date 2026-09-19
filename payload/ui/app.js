@@ -6,10 +6,12 @@
     containers: [],
     images: [],
     volumes: [],
+    engineRunning: false,
     containerFilter: 'all'
   };
   var pageOrder = ['overview', 'containers', 'images', 'volumes'];
   var toastTimer = null;
+  var confirmCallback = null;
 
   function byId(id) { return document.getElementById(id); }
   function escapeHtml(value) {
@@ -44,6 +46,35 @@
     byId('busy').hidden = !active;
     if (text) byId('busyText').textContent = text;
   }
+  function setButtonLoading(button, active, label) {
+    if (!button) return;
+    if (active) {
+      if (!button.hasAttribute('data-idle-label')) button.setAttribute('data-idle-label', button.textContent.trim());
+      button.textContent = '';
+      var spinner = document.createElement('span');
+      spinner.className = 'button-spinner';
+      spinner.setAttribute('aria-hidden', 'true');
+      var text = document.createElement('span');
+      text.textContent = label || '处理中';
+      button.appendChild(spinner);
+      button.appendChild(text);
+      button.classList.add('button-loading');
+      button.disabled = true;
+    } else {
+      button.textContent = button.getAttribute('data-idle-label') || button.textContent;
+      button.removeAttribute('data-idle-label');
+      button.classList.remove('button-loading');
+    }
+  }
+  function setControlGroupLoading(ids, button, active, label) {
+    if (active) {
+      ids.forEach(function (id) { byId(id).disabled = true; });
+      setButtonLoading(button, true, label);
+    } else {
+      setButtonLoading(button, false);
+      setEngineControls(state.engineRunning);
+    }
+  }
 
   function api(action, payload) {
     return window.XiaomiPluginClient.request({
@@ -60,7 +91,9 @@
     }).then(function (response) {
       return response.text().then(function (text) {
         var data;
-        try { data = JSON.parse(text); } catch (error) { throw new Error('设备返回了无法解析的数据'); }
+        try { data = JSON.parse(text); } catch (error) {
+          throw new Error(response.ok ? '设备返回了无法解析的数据' : '设备请求超时或响应异常（HTTP ' + response.status + '）');
+        }
         if (!data.ok) throw new Error(data.error || '操作失败');
         if (data.pluginVersion) byId('pluginVersion').textContent = '插件版本 ' + data.pluginVersion;
         return data;
@@ -87,18 +120,39 @@
     return '<div class="detail-item"><span>' + escapeHtml(label) + '</span><strong title="' + escapeHtml(value) + '">' + escapeHtml(value) + '</strong></div>';
   }
 
+  function setEngineControls(running) {
+    byId('startDockerButton').disabled = running;
+    byId('restartDockerButton').disabled = !running;
+    byId('stopDockerButton').disabled = !running;
+    ['startAllContainersButton', 'restartAllContainersButton', 'stopAllContainersButton'].forEach(function (id) {
+      byId(id).disabled = !running;
+    });
+  }
+
   function loadOverview() {
     byId('engineSubtitle').textContent = '正在读取设备信息…';
-    return Promise.all([api('system_summary'), api('volume_list')]).then(function (results) {
-      var data = results[0];
-      state.volumes = results[1].volumes || [];
+    return api('system_summary').then(function (data) {
+      state.engineRunning = data.engineRunning !== false;
+      setEngineControls(state.engineRunning);
+      if (!state.engineRunning) {
+        state.volumes = [];
+        byId('engineBadge').className = 'status-pill stopped';
+        byId('engineBadge').innerHTML = '<i></i>已停止';
+        byId('engineSubtitle').textContent = 'Docker 服务当前未运行';
+        ['runningMetric', 'stoppedMetric', 'imageMetric', 'volumeMetric'].forEach(function (id) { byId(id).textContent = '0'; });
+        byId('systemInfo').className = 'detail-list';
+        byId('systemInfo').innerHTML = [detailItem('服务状态', data.serviceState || 'inactive'), detailItem('Docker Socket', data.socketAvailable ? '已就绪' : '已停止')].join('');
+        byId('diskUsage').className = 'empty-state';
+        byId('diskUsage').textContent = '启动 Docker 后显示空间占用。';
+        return;
+      }
       byId('engineBadge').className = 'status-pill running';
       byId('engineBadge').innerHTML = '<i></i>运行正常';
       byId('engineSubtitle').textContent = (data.name || '小米智能存储') + ' · Docker ' + (data.serverVersion || '未知版本');
       byId('runningMetric').textContent = data.running;
       byId('stoppedMetric').textContent = data.stopped;
       byId('imageMetric').textContent = data.images;
-      byId('volumeMetric').textContent = state.volumes.length;
+      byId('volumeMetric').textContent = '…';
       byId('systemInfo').className = 'detail-list';
       byId('systemInfo').innerHTML = [
         detailItem('Docker 版本', data.serverVersion || '—'),
@@ -111,7 +165,13 @@
         detailItem('Docker 数据目录', data.dockerRootDir || '—')
       ].join('');
       renderDisk(data.disk || []);
+      return api('volume_list').then(function (volumeData) {
+        state.volumes = volumeData.volumes || [];
+        byId('volumeMetric').textContent = state.volumes.length;
+      }).catch(function () { byId('volumeMetric').textContent = '—'; });
     }).catch(function (error) {
+      state.engineRunning = false;
+      setEngineControls(false);
       byId('engineBadge').className = 'status-pill stopped';
       byId('engineBadge').innerHTML = '<i></i>连接失败';
       byId('engineSubtitle').textContent = error.message;
@@ -198,20 +258,76 @@
       byId('containerList').className = 'empty-state'; byId('containerList').textContent = error.message; showToast(error.message, true);
     });
   }
-  function runContainerAction(target, operation) {
-    setBusy(true, '正在执行容器操作…');
+  function runContainerAction(button, target, operation) {
+    var inline = ['start', 'stop', 'restart'].indexOf(operation) >= 0;
+    var progressLabels = { start: '启动中', stop: '停止中', restart: '重启中' };
+    if (inline) setButtonLoading(button, true, progressLabels[operation]);
+    else setBusy(true, '正在执行容器操作…');
     api('container_action', { target: target, operation: operation }).then(function (data) {
       showToast(data.message || '操作完成'); return loadContainers();
-    }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    }).catch(function (error) { showToast(error.message, true); }).finally(function () {
+      if (inline) setButtonLoading(button, false);
+      else setBusy(false);
+    });
+  }
+  function runEngineAction(operation) {
+    var labels = {
+      start: { title: '启动 Docker', message: '将启动 Docker 引擎，并按各容器的重启策略恢复容器。', button: '启动', danger: false },
+      restart: { title: '重启 Docker', message: '将短暂中断所有容器服务，完成后自动恢复。', button: '重启', danger: false },
+      stop: { title: '停止 Docker', message: '将停止 Docker 引擎和所有容器，但不会删除容器、镜像或存储卷。', button: '停止', danger: true }
+    };
+    var copy = labels[operation]; if (!copy) return;
+    var button = byId({ start: 'startDockerButton', restart: 'restartDockerButton', stop: 'stopDockerButton' }[operation]);
+    var group = ['startDockerButton', 'restartDockerButton', 'stopDockerButton'];
+    showConfirm(copy.title, copy.message, copy.button, copy.danger, function () {
+      setControlGroupLoading(group, button, true, copy.button + '中');
+      api('engine_action', { operation: operation }).then(function (data) {
+        showToast(data.message || '操作完成'); return loadOverview();
+      }).catch(function (error) { showToast(error.message, true); }).finally(function () {
+        setControlGroupLoading(group, button, false);
+      });
+    });
+  }
+  function runBulkContainerAction(operation) {
+    var labels = {
+      start: { title: '启动全部容器', message: '将启动所有已创建的容器。', button: '启动全部', danger: false },
+      restart: { title: '重启全部容器', message: '将重启所有已创建的容器，相关服务会短暂中断。', button: '重启全部', danger: false },
+      stop: { title: '停止全部容器', message: '将停止所有正在运行的容器，不会删除容器和数据。', button: '停止全部', danger: true }
+    };
+    var copy = labels[operation]; if (!copy) return;
+    var button = byId({ start: 'startAllContainersButton', restart: 'restartAllContainersButton', stop: 'stopAllContainersButton' }[operation]);
+    var group = ['startAllContainersButton', 'restartAllContainersButton', 'stopAllContainersButton'];
+    showConfirm(copy.title, copy.message, copy.button, copy.danger, function () {
+      setControlGroupLoading(group, button, true, copy.button.replace('全部', '') + '中');
+      api('container_bulk_action', { operation: operation }).then(function (data) {
+        if (!data.accepted || !data.taskId) return data;
+        return waitForBulkContainerTask(data.taskId, Date.now());
+      }).then(function (data) {
+        showToast(data.message || '操作完成'); return loadContainers();
+      }).catch(function (error) { showToast(error.message, true); }).finally(function () {
+        setControlGroupLoading(group, button, false);
+      });
+    });
+  }
+  function waitForBulkContainerTask(taskId, startedAt) {
+    return api('container_bulk_status', { taskId: taskId }).then(function (data) {
+      if (data.state === 'success') return data;
+      if (data.state === 'error') throw new Error(data.message || '批量操作失败');
+      if (Date.now() - startedAt > 360000) throw new Error('批量操作仍在后台进行，请稍后刷新容器列表');
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () { waitForBulkContainerTask(taskId, startedAt).then(resolve, reject); }, 1500);
+      });
+    });
   }
   function removeContainer(button) {
     var name = button.getAttribute('data-name');
     var running = button.getAttribute('data-running') === 'true';
-    if (!window.confirm('确定删除容器“' + name + '”吗？\n不会自动删除镜像和命名存储卷。')) return;
-    setBusy(true, '正在删除容器…');
-    api('container_action', { target: button.getAttribute('data-container-remove'), operation: 'remove', force: running, volumes: false }).then(function () {
-      showToast('容器已删除'); return loadContainers();
-    }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    showConfirm('删除容器', '确定删除容器“' + name + '”吗？\n不会自动删除镜像和命名存储卷。', '删除', true, function () {
+      setBusy(true, '正在删除容器…');
+      api('container_action', { target: button.getAttribute('data-container-remove'), operation: 'remove', force: running, volumes: false }).then(function () {
+        showToast('容器已删除'); return loadContainers();
+      }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    });
   }
 
   function showTextModal(title, subtitle, content) {
@@ -259,11 +375,12 @@
     }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
   }
   function removeImage(button) {
-    if (!window.confirm('确定删除镜像“' + button.getAttribute('data-name') + '”吗？\n正在被容器使用的镜像不会被删除。')) return;
-    setBusy(true, '正在删除镜像…');
-    api('image_remove', { target: button.getAttribute('data-image-remove'), force: false }).then(function () {
-      showToast('镜像已删除'); return loadImages();
-    }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    showConfirm('删除镜像', '确定删除镜像“' + button.getAttribute('data-name') + '”吗？\n正在被容器使用的镜像不会被删除。', '删除', true, function () {
+      setBusy(true, '正在删除镜像…');
+      api('image_remove', { target: button.getAttribute('data-image-remove'), force: false }).then(function () {
+        showToast('镜像已删除'); return loadImages();
+      }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    });
   }
 
   function loadVolumes() {
@@ -289,11 +406,12 @@
     }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
   }
   function removeVolume(name) {
-    if (!window.confirm('确定删除存储卷“' + name + '”吗？\n其中的数据将无法通过该存储卷恢复。')) return;
-    setBusy(true, '正在删除存储卷…');
-    api('volume_remove', { target: name, force: false }).then(function () {
-      showToast('存储卷已删除'); return loadVolumes();
-    }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    showConfirm('删除存储卷', '确定删除存储卷“' + name + '”吗？\n其中的数据将无法通过该存储卷恢复。', '删除', true, function () {
+      setBusy(true, '正在删除存储卷…');
+      api('volume_remove', { target: name, force: false }).then(function () {
+        showToast('存储卷已删除'); return loadVolumes();
+      }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
+    });
   }
 
   function openModal(id) {
@@ -301,10 +419,25 @@
     byId(id).hidden = false;
     document.body.style.overflow = 'hidden';
   }
+  function showConfirm(title, message, buttonLabel, danger, callback) {
+    confirmCallback = callback;
+    byId('confirmTitle').textContent = title;
+    byId('confirmMessage').textContent = message;
+    byId('confirmAcceptButton').textContent = buttonLabel || '确认';
+    byId('confirmAcceptButton').className = danger ? 'danger-button' : 'primary-button';
+    openModal('confirmModal');
+  }
   function closeModals() {
+    confirmCallback = null;
     byId('modalBackdrop').hidden = true;
     document.querySelectorAll('.modal').forEach(function (modal) { modal.hidden = true; });
     document.body.style.overflow = '';
+  }
+  function acceptConfirm() {
+    var callback = confirmCallback;
+    confirmCallback = null;
+    closeModals();
+    if (callback) callback();
   }
   function openCreateContainer() {
     openModal('createContainerModal');
@@ -348,13 +481,20 @@
   byId('createContainerButton').addEventListener('click', createContainer);
   byId('pullImageButton').addEventListener('click', pullImage);
   byId('createVolumeButton').addEventListener('click', createVolume);
+  byId('startDockerButton').addEventListener('click', function () { runEngineAction('start'); });
+  byId('restartDockerButton').addEventListener('click', function () { runEngineAction('restart'); });
+  byId('stopDockerButton').addEventListener('click', function () { runEngineAction('stop'); });
+  byId('startAllContainersButton').addEventListener('click', function () { runBulkContainerAction('start'); });
+  byId('restartAllContainersButton').addEventListener('click', function () { runBulkContainerAction('restart'); });
+  byId('stopAllContainersButton').addEventListener('click', function () { runBulkContainerAction('stop'); });
+  byId('confirmAcceptButton').addEventListener('click', acceptConfirm);
   byId('refreshButton').addEventListener('click', function () { switchPage(state.page); });
   byId('pullImage').addEventListener('keydown', function (event) { if (event.key === 'Enter') pullImage(); });
   byId('volumeName').addEventListener('keydown', function (event) { if (event.key === 'Enter') createVolume(); });
 
   byId('containerList').addEventListener('click', function (event) {
     var button = event.target.closest('button'); if (!button) return;
-    if (button.hasAttribute('data-container-op')) runContainerAction(button.getAttribute('data-target'), button.getAttribute('data-container-op'));
+    if (button.hasAttribute('data-container-op')) runContainerAction(button, button.getAttribute('data-target'), button.getAttribute('data-container-op'));
     if (button.hasAttribute('data-container-remove')) removeContainer(button);
     if (button.hasAttribute('data-container-logs')) loadLogs(button.getAttribute('data-container-logs'), button.getAttribute('data-name'));
     if (button.hasAttribute('data-container-inspect')) inspectContainer(button.getAttribute('data-container-inspect'), button.getAttribute('data-name'));

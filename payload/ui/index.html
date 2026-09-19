@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#071827">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css?v=1.0.10">
+  <link rel="stylesheet" href="style.css?v=1.0.14">
 </head>
 <body>
   <main id="shell" class="shell">
@@ -44,6 +44,14 @@
         <button class="metric-card" data-go="volumes"><strong id="volumeMetric">—</strong><span>存储卷</span></button>
       </div>
       <article class="panel">
+        <div class="panel-heading"><div><h3>Docker 服务</h3><p>启动、停止或重启整个 Docker 引擎</p></div></div>
+        <div class="control-grid">
+          <button id="startDockerButton" class="primary-button" type="button">启动 Docker</button>
+          <button id="restartDockerButton" class="action-button" type="button">重启 Docker</button>
+          <button id="stopDockerButton" class="danger-button" type="button">停止 Docker</button>
+        </div>
+      </article>
+      <article class="panel">
         <div class="panel-heading"><div><h3>系统信息</h3><p>Docker 服务与存储位置</p></div></div>
         <div id="systemInfo" class="detail-list loading-row">正在读取…</div>
       </article>
@@ -58,6 +66,14 @@
         <div><h2>容器</h2><p id="containerSummary">读取容器中…</p></div>
         <button id="openCreateContainer" class="primary-button" type="button">＋ 创建</button>
       </div>
+      <article class="panel compact bulk-panel">
+        <div class="panel-heading"><div><h3>全部容器</h3><p>一次操作所有现有容器</p></div></div>
+        <div class="control-grid">
+          <button id="startAllContainersButton" class="primary-button" type="button">启动全部</button>
+          <button id="restartAllContainersButton" class="action-button" type="button">重启全部</button>
+          <button id="stopAllContainersButton" class="danger-button" type="button">停止全部</button>
+        </div>
+      </article>
       <div class="filter-bar">
         <button class="filter active" data-filter="all">全部</button>
         <button class="filter" data-filter="running">运行中</button>
@@ -90,7 +106,7 @@
       <div id="volumeList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <footer id="pluginVersion">插件版本 1.0.10</footer>
+    <footer id="pluginVersion">插件版本 1.0.14</footer>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden></div>
@@ -121,9 +137,16 @@
     <div class="modal-actions"><button class="secondary-button close-modal" type="button">关闭</button></div>
   </section>
 
+  <section id="confirmModal" class="modal confirm-modal" hidden aria-modal="true" role="dialog">
+    <div class="modal-handle"></div>
+    <div class="modal-heading"><div><h2 id="confirmTitle">确认操作</h2><p>请检查后继续</p></div><button class="close-modal" type="button">×</button></div>
+    <div class="modal-body"><p id="confirmMessage" class="confirm-message"></p></div>
+    <div class="modal-actions"><button class="secondary-button close-modal" type="button">取消</button><button id="confirmAcceptButton" class="primary-button" type="button">确认</button></div>
+  </section>
+
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="client-bridge.js?v=1.0.10"></script>
-  <script src="app.js"></script>
+  <script src="client-bridge.js?v=1.0.14"></script>
+  <script src="app.js?v=1.0.14"></script>
 </body>
 </html>
