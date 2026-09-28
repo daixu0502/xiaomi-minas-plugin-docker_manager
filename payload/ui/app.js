@@ -244,6 +244,7 @@
         actions.push('<button class="action-button" data-container-op="restart" data-target="' + escapeHtml(item.id) + '">重启</button>');
         actions.push('<button class="action-button" data-container-op="pause" data-target="' + escapeHtml(item.id) + '">暂停</button>');
       } else actions.push('<button class="primary-button" data-container-op="start" data-target="' + escapeHtml(item.id) + '">启动</button>');
+      actions.push('<button class="action-button" data-container-upgrade="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.name) + '" data-image="' + escapeHtml(item.image) + '">升级</button>');
       actions.push('<button class="action-button" data-container-logs="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.name) + '">日志</button>');
       actions.push('<button class="action-button" data-container-inspect="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.name) + '">详情</button>');
       actions.push('<button class="danger-button" data-container-remove="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.name) + '" data-running="' + item.running + '">删除</button>');
@@ -269,6 +270,40 @@
       if (inline) setButtonLoading(button, false);
       else setBusy(false);
     });
+  }
+  function waitForContainerUpgrade(taskId, startedAt) {
+    return api('container_upgrade_status', { taskId: taskId }).then(function (data) {
+      if (data.state === 'success') return data;
+      if (data.state === 'error') throw new Error(data.message || '容器升级失败');
+      if (Date.now() - startedAt > 2100000) throw new Error('升级仍在后台进行，请稍后刷新容器列表');
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () { waitForContainerUpgrade(taskId, startedAt).then(resolve, reject); }, 1800);
+      });
+    });
+  }
+  function upgradeContainer(button) {
+    var target = button.getAttribute('data-container-upgrade');
+    var name = button.getAttribute('data-name') || target;
+    var image = button.getAttribute('data-image') || '当前镜像';
+    showConfirm(
+      '升级容器',
+      '将拉取“' + image + '”的最新镜像，并按容器“' + name + '”当前的端口、挂载、环境变量、网络、用户、命令和重启策略重新创建。\n命名存储卷和绑定目录不会删除；运行中的服务会短暂中断，失败时将自动恢复旧容器。',
+      '开始升级',
+      false,
+      function () {
+        setButtonLoading(button, true, '升级中');
+        api('container_upgrade', { target: target }).then(function (data) {
+          if (!data.accepted || !data.taskId) return data;
+          return waitForContainerUpgrade(data.taskId, Date.now());
+        }).then(function (data) {
+          showToast(data.message || '容器升级完成');
+          return loadContainers();
+        }).catch(function (error) {
+          showToast(error.message, true);
+          return loadContainers();
+        }).finally(function () { setButtonLoading(button, false); });
+      }
+    );
   }
   function runEngineAction(operation) {
     var labels = {
@@ -495,6 +530,7 @@
   byId('containerList').addEventListener('click', function (event) {
     var button = event.target.closest('button'); if (!button) return;
     if (button.hasAttribute('data-container-op')) runContainerAction(button, button.getAttribute('data-target'), button.getAttribute('data-container-op'));
+    if (button.hasAttribute('data-container-upgrade')) upgradeContainer(button);
     if (button.hasAttribute('data-container-remove')) removeContainer(button);
     if (button.hasAttribute('data-container-logs')) loadLogs(button.getAttribute('data-container-logs'), button.getAttribute('data-name'));
     if (button.hasAttribute('data-container-inspect')) inspectContainer(button.getAttribute('data-container-inspect'), button.getAttribute('data-name'));

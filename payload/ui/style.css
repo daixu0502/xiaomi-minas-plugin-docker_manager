@@ -157,6 +157,40 @@ footer { padding: 24px 0 3px; color: rgba(39,67,82,.55); text-align: center; fon
 .toast.show { transform: translate(-50%, 0); opacity: 1; }
 .toast.error { background: #991b1b; }
 
+/* Centered dialogs: animate only opacity and transform for smoother WebView rendering. */
+.modal-backdrop { background: rgba(3,12,20,.56); backdrop-filter: none; -webkit-backdrop-filter: none; animation: modal-backdrop-in .14s ease-out both; }
+.modal {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: min(720px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  max-height: calc(100dvh - 28px);
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.27);
+  transform: translate(-50%, -50%);
+  animation: modal-center-in .16s cubic-bezier(.2,.7,.2,1) both;
+  overscroll-behavior: contain;
+}
+.modal-handle { display: none; }
+.modal-heading, .modal-actions { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.confirm-modal { width: min(480px, calc(100vw - 28px)); }
+html.dialog-scroll-locked, html.dialog-scroll-locked body { overflow: hidden; overscroll-behavior: none; }
+html.dialog-scroll-locked:not(.desktop-client) body { position: fixed; top: var(--dialog-scroll-top, 0px); left: 0; right: 0; width: 100%; }
+html.desktop-client.dialog-scroll-locked .shell { overflow-y: hidden; }
+.modal-backdrop { overscroll-behavior: none; touch-action: none; }
+@keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-center-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(.985); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal, .modal-backdrop { animation: none; }
+}
+
 @media (max-width: 540px) {
   .shell { padding-left: max(13px, env(safe-area-inset-left)); padding-right: max(13px, env(safe-area-inset-right)); }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }

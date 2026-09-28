@@ -3,7 +3,7 @@ set -eu
 
 PLUGIN_USER="${1:-}"
 PLUGIN_NAME="dockermanager"
-PLUGIN_VERSION="1.0.14"
+PLUGIN_VERSION="1.0.17"
 BUNDLE_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PAYLOAD_DIR="$BUNDLE_DIR/payload"
 
@@ -83,7 +83,7 @@ info_tmp="$TMP_DIR/INFO.$$"
 jq -n --arg version "$PLUGIN_VERSION" --arg abstract "$abstract" --argjson timestamp "$timestamp" --argjson size "$plugin_size" '{
   plugin:"dockermanager", name:"docker", id:19091, version:$version, tags:["tool"],
   timestamp:$timestamp, desc:"容器、镜像与存储卷管理", developer:"Local", publisher:"Local",
-  changelog:"启停与重启操作改为按钮内显示进度动画",
+  changelog:"修复手机 APP 二级弹窗滚动穿透，保留桌面端适配",
   system:false, size:$size, port:"", type:"standard", forceupgrade:false,
   ext:{admin:true}, hotplug:[], abstract:$abstract
 }' > "$info_tmp"
