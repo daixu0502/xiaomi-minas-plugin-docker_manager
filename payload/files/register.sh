@@ -12,7 +12,7 @@ PLUGIN_HOME="/home/$plugin_user/plugin/dockermanager"
 LIST_FILE="/data/plugin/$plugin_user.list"
 INFO_FILE="$PLUGIN_HOME/INFO"
 FRONTEND_FILE="$SRC_DIR/ui/config"
-LOCK_FILE="/data/plugin/.$plugin_user.dockermanager.lock"
+LOCK_FILE="/data/plugin/.$plugin_user.plugins.lock"
 [ -f "$INFO_FILE" ] && [ -f "$FRONTEND_FILE" ] || exit 1
 [ -f "$LIST_FILE" ] || printf '{}\n' > "$LIST_FILE"
 jq empty "$LIST_FILE" >/dev/null 2>&1 || exit 1

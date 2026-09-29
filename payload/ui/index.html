@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#071827">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css?v=1.0.17">
+  <link rel="stylesheet" href="style.css?v=1.0.23">
 </head>
 <body>
   <main id="shell" class="shell">
@@ -61,8 +61,8 @@
       </article>
     </section>
 
-    <section id="page-containers" class="page">
-      <div class="section-heading">
+    <section id="page-containers" class="page" aria-label="容器">
+      <div class="section-heading section-toolbar">
         <div><h2>容器</h2><p id="containerSummary">读取容器中…</p></div>
         <button id="openCreateContainer" class="primary-button" type="button">＋ 创建</button>
       </div>
@@ -82,8 +82,8 @@
       <div id="containerList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <section id="page-images" class="page">
-      <div class="section-heading"><div><h2>镜像</h2><p id="imageSummary">读取镜像中…</p></div></div>
+    <section id="page-images" class="page" aria-label="镜像">
+      <div class="section-heading section-toolbar"><div><h2>镜像</h2><p id="imageSummary">读取镜像中…</p></div></div>
       <article class="panel compact">
         <label class="field-label" for="pullImage">拉取镜像</label>
         <div class="inline-form">
@@ -94,8 +94,8 @@
       <div id="imageList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <section id="page-volumes" class="page">
-      <div class="section-heading"><div><h2>存储卷</h2><p id="volumeSummary">读取存储卷中…</p></div></div>
+    <section id="page-volumes" class="page" aria-label="存储卷">
+      <div class="section-heading section-toolbar"><div><h2>存储卷</h2><p id="volumeSummary">读取存储卷中…</p></div></div>
       <article class="panel compact">
         <label class="field-label" for="volumeName">创建存储卷</label>
         <div class="inline-form">
@@ -106,7 +106,7 @@
       <div id="volumeList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <footer id="pluginVersion">插件版本 1.0.17</footer>
+    <footer id="pluginVersion">插件版本 1.0.23</footer>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden></div>
@@ -146,8 +146,8 @@
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="client-bridge.js?v=1.0.17"></script>
-  <script src="app.js?v=1.0.17"></script>
+  <script src="client-bridge.js?v=1.0.23"></script>
+  <script src="app.js?v=1.0.23"></script>
   <script>
     (function () {
       var root = document.documentElement, body = document.body;

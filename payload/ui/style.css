@@ -50,6 +50,18 @@ html.desktop-client .shell {
   overflow-y: auto;
   overscroll-behavior-y: contain;
 }
+html.desktop-client .shell { font-size: 15px; }
+html.desktop-client .shell p,
+html.desktop-client .shell .tab,
+html.desktop-client .shell .field-label,
+html.desktop-client .shell .form-grid label > span,
+html.desktop-client .shell .detail-item strong { font-size: 14px; }
+html.desktop-client .shell .eyebrow,
+html.desktop-client .shell .metric-card span,
+html.desktop-client .shell .detail-item span,
+html.desktop-client .shell .meta-chip,
+html.desktop-client .shell .badge,
+html.desktop-client .shell footer { font-size: 12px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 72px; color: #fff; }
 .eyebrow { margin-bottom: 4px; color: rgba(255,255,255,.58); font-size: 10px; font-weight: 800; letter-spacing: .19em; }
 h1, h2, h3, p { margin: 0; }
@@ -201,3 +213,99 @@ html.desktop-client.dialog-scroll-locked .shell { overflow-y: hidden; }
   .form-grid label { grid-column: 1 / -1; }
   .control-grid { grid-template-columns: 1fr; }
 }
+
+/* The desktop frame is sized to the embedded plugin window, not the host viewport. */
+html.desktop-client .desktop-frame {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: layout paint;
+  isolation: isolate;
+  color: var(--text);
+  background: linear-gradient(180deg,#071827 0,#0b2638 170px,var(--background) 340px);
+}
+html.desktop-client .desktop-frame > .shell {
+  position: relative;
+  inset: auto;
+  flex: 1 1 0;
+  width: 0;
+  max-width: none;
+  height: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 18px 22px 34px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+html.desktop-client .desktop-frame > .shell > * { max-width: 1120px; margin-right: auto; margin-left: auto; }
+html.desktop-client .desktop-frame > .tabs {
+  position: relative;
+  inset: auto;
+  display: flex;
+  flex: 0 0 190px;
+  width: 190px;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+  padding: 22px 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-solid);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.desktop-client .desktop-frame > .tabs::before { content: "DOCKER MANAGER"; display: block; margin: 2px 10px 14px; color: var(--blue-dark); font-size: 13px; font-weight: 800; }
+html.desktop-client .desktop-frame > .tabs .tab { width: 100%; flex: 0 0 auto; color: var(--text); text-align: left; font-size: 14px; }
+html.desktop-client .desktop-frame > .tabs .tab.active { color: var(--blue-dark); background: #dff3fc; }
+html.desktop-client .desktop-frame.desktop-compact { flex-direction: column; }
+html.desktop-client .desktop-frame.desktop-compact > .tabs { flex: 0 0 auto; width: 100%; height: auto; max-height: 35%; flex-direction: row; padding: 8px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+html.desktop-client .desktop-frame.desktop-compact > .tabs::before { display: none; }
+html.desktop-client .desktop-frame.desktop-compact > .tabs .tab { width: auto; flex: 1 0 auto; text-align: center; }
+html.desktop-client .desktop-frame.desktop-compact > .shell { width: 100%; height: 0; padding: 14px 14px 30px; }
+html.desktop-client.dialog-scroll-locked .desktop-frame > .shell { overflow-y: hidden; }
+html.desktop-client .desktop-frame > .modal,
+html.desktop-client .desktop-frame > .sheet,
+html.desktop-client .desktop-frame > .dialog,
+html.desktop-client .desktop-frame > .detail-sheet,
+html.desktop-client .desktop-frame > .mi-picker-sheet,
+html.desktop-client .desktop-frame > .mi-confirm-dialog { max-width: calc(100% - 28px); max-height: calc(100% - 28px); }
+
+/* Keep list actions readable over the header gradient in both client layouts. */
+.section-heading.section-toolbar {
+  min-width: 0;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  background: var(--surface);
+}
+.section-toolbar > div { min-width: 0; flex: 1 1 150px; }
+.section-heading.section-toolbar p { margin: 0; color: var(--text); line-height: 1.6; overflow-wrap: anywhere; }
+.section-toolbar h2 { margin: 0 0 4px; }
+.section-heading.section-toolbar > button { flex: 0 0 auto; max-width: 100%; min-height: 44px; margin-left: auto; white-space: normal; }
+html:not(.desktop-client) .section-toolbar h2 { display: none; }
+footer { color: var(--muted); }
+
+.section-heading.section-toolbar { background: var(--surface-solid); }
+.filter-bar { flex-wrap: wrap; }
+.filter { border-color: var(--line); color: var(--text); background: var(--surface-solid); }
+.filter.active { border-color: var(--blue-dark); color: var(--blue-dark); background: #dff3fc; }
+
