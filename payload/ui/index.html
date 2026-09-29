@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#071827">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111820" media="(prefers-color-scheme: dark)">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css?v=1.0.25">
+  <link rel="stylesheet" href="style.css?v=1.1.1">
+  <link rel="stylesheet" href="palette.css?v=1.1.1">
 </head>
 <body>
   <main id="shell" class="shell">
@@ -106,7 +109,7 @@
       <div id="volumeList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <footer id="pluginVersion">插件版本 1.0.25</footer>
+    <footer id="pluginVersion">插件版本 1.1.1</footer>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden></div>
@@ -146,8 +149,8 @@
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="client-bridge.js?v=1.0.25"></script>
-  <script src="app.js?v=1.0.25"></script>
+  <script src="client-bridge.js?v=1.1.1"></script>
+  <script src="app.js?v=1.1.1"></script>
   <script>
     (function () {
       var root = document.documentElement, body = document.body;

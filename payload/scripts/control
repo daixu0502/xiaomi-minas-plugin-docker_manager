@@ -15,7 +15,7 @@ case "${1:-}" in
     [ -x "$REGISTER" ] && "$REGISTER" running true "$PLUGIN_USER" || true
     ;;
   status)
-    [ -x "$REGISTER" ] && [ -x /data/plugin/.dockermanager-system/docker-manager-helper ]
+    [ -x "$REGISTER" ] && [ -x /data/.minas-privileged/minas-helper ]
     ;;
   *) exit 0 ;;
 esac

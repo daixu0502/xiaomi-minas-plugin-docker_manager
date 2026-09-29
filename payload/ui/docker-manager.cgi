@@ -6,7 +6,7 @@ plugin_user=$(printf '%s\n' "$SCRIPT_DIR" | sed -n 's#^/nas/pool[^/]*/\(u[0-9][0
 if [ -z "$plugin_user" ]; then plugin_user=$(stat -c '%U' "$0" 2>/dev/null || true); fi
 case "$plugin_user" in u[0-9]*) ;; *) plugin_user=$(id -un) ;; esac
 
-HELPER="/data/plugin/.dockermanager-system/docker-manager-helper"
+HELPER="/data/.minas-privileged/minas-helper"
 INFO_FILE="/home/$plugin_user/plugin/dockermanager/INFO"
 
 json_header() {
@@ -25,6 +25,7 @@ serve_frontend() {
         */app.js) static_header 'application/javascript; charset=utf-8'; cat "$SCRIPT_DIR/app.js" ;;
         */client-bridge.js) static_header 'application/javascript; charset=utf-8'; cat "$SCRIPT_DIR/client-bridge.js" ;;
         */style.css) static_header 'text/css; charset=utf-8'; cat "$SCRIPT_DIR/style.css" ;;
+        */palette.css) static_header 'text/css; charset=utf-8'; cat "$SCRIPT_DIR/palette.css" ;;
         *) static_header 'text/html; charset=utf-8'; cat "$SCRIPT_DIR/index.html" ;;
     esac
     exit 0
@@ -59,9 +60,9 @@ esac
 body=$(read_body) || json_error "请求内容无效或过大"
 printf '%s' "$body" | jq empty >/dev/null 2>&1 || json_error "请求不是有效 JSON"
 request=$(printf '%s' "$body" | jq --arg action "$action" '. + {action:$action}') || json_error "无法处理请求"
-response=$(printf '%s' "$request" | sudo -n "$HELPER" 2>/dev/null) || json_error "无法调用 Docker 权限助手"
+response=$(printf '%s' "$request" | sudo -n "$HELPER" dockermanager 2>/dev/null) || json_error "无法调用公共 Docker 权限助手"
 printf '%s' "$response" | jq empty >/dev/null 2>&1 || json_error "权限助手返回了无法解析的数据"
-plugin_version=$(jq -r '.version // "1.0.25"' "$INFO_FILE" 2>/dev/null || printf '1.0.25')
+plugin_version=$(jq -r '.version // "1.1.1"' "$INFO_FILE" 2>/dev/null || printf '1.1.1')
 
 json_header
 printf '%s' "$response" | jq --arg pluginVersion "$plugin_version" '. + {pluginVersion:$pluginVersion}'

@@ -1,6 +1,6 @@
 # 小米智能存储 Docker 管理插件
 
-在手机 APP 和电脑客户端中管理 Docker，插件列表名称为“docker”。当前插件版本：`1.0.25`。
+在手机 APP 和电脑客户端中管理 Docker，插件列表名称为“docker”。当前插件版本：`1.1.1`。
 
 ## 功能
 
@@ -128,7 +128,21 @@ bash manage.sh uninstall --help
 
 NAS 需已安装 `/data/docker/docker`。本插件不另开监听端口；不同用户分别注册页面和权限，操作的是同一 Docker 引擎。卸载某一用户的插件不会停止或删除容器。
 
-只有最后一名用户卸载后，且没有剩余权限引用时，才清理共享管理助手。Docker 数据目录不在卸载范围内。
+只有 Docker Manager 和定时任务的所有用户均已卸载时，才清理公共组件执行文件和 cron。保留受保护的登记/锁目录和备份；Docker 数据目录不在卸载范围内。
+
+## 公共权限组件
+
+与定时任务共用 `/data/.minas-privileged/minas-helper`（组件 1.x、API v1）。两个安装包各自携带完整公共组件，可按任意顺序独立安装；安装器检查版本、拒绝权限模块降级和不兼容主版本。卸载一个插件不会删除另一个仍需使用的组件。
+
+CGI 通过 `sudo -n /data/.minas-privileged/minas-helper dockermanager` 发送 JSON 请求。助手按固定接口调用本机 Docker CLI、Unix socket 和固定的 Docker systemd 服务，不开放额外端口，不授予任意 root shell，也不放宽 docker.sock 权限。
+
+两个插件的 Docker 写操作共用全局锁，异步升级和批量操作的整个过程都持有锁；查询与进度轮询仍可使用，冲突写操作返回忙。外部 SSH、其他插件和 Docker 自动重启不受此锁限制。升级/卸载公共组件时拒绝中断正在执行的操作。
+
+授权由 root 登记在 `registry.json`，sudoers 只允许对应模块入口，不使用参数通配符。**Docker 容器创建与宿主机挂载属于接近 root 的高信任能力，仅应安装给可信管理员。同一 NAS 账户的插件共用 UID，授权是该账户的权限并集，不代表插件之间存在强隔离。**
+
+公共组件及迁移/移除备份位于 `/data/.minas-privileged-backups/<时间>/`。组件、父路径和模块必须由 root 所有且普通用户不可写；旧的 `/data/plugin/.dockermanager-system/` 不再作为新版本的提权入口。开机注册脚本降权为对应 NAS 用户执行。
+
+手机 Android/iOS 跟随 WebView 提供的系统深浅色信号；Docker 的卡片、输入框、弹窗和按钮均有深色样式。电脑客户端固定使用雾蓝灰。`palette.css` 同时由 CGI 静态路由提供；更新后请退出插件重进，若宿主不传递主题信号仍需在 APP 侧确认主题设置。
 
 ## 常见问题
 

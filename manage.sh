@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_NAME='dockermanager'
 PLUGIN_LABEL='docker'
-PLUGIN_VERSION='1.0.25'
+PLUGIN_VERSION='1.1.1'
 UNINSTALL_NOTE='保留 Docker 引擎、容器、镜像、网络和存储卷。'
 
 # Shared frontend; keep this section consistent across the four manage.sh files.
@@ -383,6 +383,12 @@ nas_uninstall() {
     mkdir -p "$NAS_BACKUP"
     chmod 0700 "$NAS_BACKUP"
     nas_log "停止所选用户的插件并备份配置……"
+    # Shared helper removal is reference-aware and refuses active operations.
+    # Legacy installations without the component retain the original uninstall path.
+    if [ -f /data/.minas-privileged/component_admin.py ]; then
+        python3 /data/.minas-privileged/component_admin.py remove --plugin "$NAS_PLUGIN" --user "$NAS_USER" ||
+            nas_fail "公共权限组件正在使用，或撤销授权失败；未删除插件。"
+    fi
     plugincenter -u "$NAS_USER" -p "$NAS_PLUGIN" disable >/dev/null 2>&1 || true
     if [ -x "$NAS_HOME/scripts/control" ]; then
         PLUG_USER="$NAS_USER" PLUG_NAME="$NAS_PLUGIN" PLUG_HOME_DIR="$NAS_HOME" PLUG_SRC_DIR="$NAS_SRC" \
@@ -495,15 +501,16 @@ WEB_LINK="$WEB_USER_DIR/$PLUGIN_NAME"
 ICON_DIR="/data/plugin/www/icon"
 ICON_FILE="$ICON_DIR/$PLUGIN_NAME.icon"
 LOCK_FILE="/data/plugin/.$PLUGIN_USER.plugins.lock"
-HELPER_DIR="/data/plugin/.dockermanager-system"
-HELPER="$HELPER_DIR/docker-manager-helper"
+HELPER_DIR="/data/.minas-privileged"
+HELPER="$HELPER_DIR/minas-helper"
 SUDOERS="/etc/sudoers.d/dockermanager-$PLUGIN_USER"
 CRON_FILE="/etc/cron.d/dockermanager-$PLUGIN_USER"
 
 [ -f "$LIST_FILE" ] || fail "未找到插件清单：$LIST_FILE"
 jq empty "$LIST_FILE" >/dev/null 2>&1 || fail "插件清单不是有效 JSON"
 mkdir -p "$PLUGIN_ROOT" "$SRC_PARENT" "$TMP_PARENT" "$PLUGIN_HOME" "$SCRIPTS_DIR" \
-    "$WEB_USER_DIR" "$ICON_DIR" "$HELPER_DIR" /etc/sudoers.d
+    "$WEB_USER_DIR" "$ICON_DIR" /etc/sudoers.d
+python3 "$PAYLOAD_DIR/common/component_admin.py" install --plugin "$PLUGIN_NAME" --user "$PLUGIN_USER" --payload "$PAYLOAD_DIR" --plugin-version "$PLUGIN_VERSION" || fail "公共权限组件安装失败"
 
 stage_src="$SRC_PARENT/.$PLUGIN_NAME.new.$$"
 old_src="$SRC_PARENT/.$PLUGIN_NAME.old.$$"
@@ -512,9 +519,8 @@ rm -rf "$stage_src"
 mkdir -p "$stage_src"
 cp -R "$PAYLOAD_DIR/files" "$stage_src/files"
 cp -R "$PAYLOAD_DIR/ui" "$stage_src/ui"
-cp -R "$PAYLOAD_DIR/system" "$stage_src/system"
-chmod 0755 "$stage_src/files/"*.sh "$stage_src/ui/"*.cgi "$stage_src/system/docker-manager-helper"
-chmod 0644 "$stage_src/ui/index.html" "$stage_src/ui/app.js" "$stage_src/ui/client-bridge.js" "$stage_src/ui/style.css" "$stage_src/ui/config"
+chmod 0755 "$stage_src/files/"*.sh "$stage_src/ui/"*.cgi
+chmod 0644 "$stage_src/ui/index.html" "$stage_src/ui/app.js" "$stage_src/ui/client-bridge.js" "$stage_src/ui/style.css" "$stage_src/ui/palette.css" "$stage_src/ui/config"
 
 if [ -d "$SRC_DIR" ] && [ ! -L "$SRC_DIR" ]; then mv "$SRC_DIR" "$old_src"; fi
 mv "$stage_src" "$SRC_DIR"
@@ -538,7 +544,7 @@ info_tmp="$TMP_DIR/INFO.$$"
 jq -n --arg version "$PLUGIN_VERSION" --arg abstract "$abstract" --argjson timestamp "$timestamp" --argjson size "$plugin_size" '{
   plugin:"dockermanager", name:"docker", id:19091, version:$version, tags:["tool"],
   timestamp:$timestamp, desc:"容器、镜像与存储卷管理", developer:"Local", publisher:"Local",
-  changelog:"统一安装卸载流程与多用户选择",
+  changelog:"公共权限组件、跨插件 Docker 操作互斥与手机深色模式",
   system:false, size:$size, port:"", type:"standard", forceupgrade:false,
   ext:{admin:true}, hotplug:[], abstract:$abstract
 }' > "$info_tmp"
@@ -569,35 +575,14 @@ mv -f "$list_tmp" "$LIST_FILE"
 rm -f "$entry_file"
 flock -u 9
 
-helper_tmp="$HELPER.new.$$"
-sudoers_tmp="$SUDOERS.new.$$"
-cp "$PAYLOAD_DIR/system/docker-manager-helper" "$helper_tmp"
-chown root:root "$HELPER_DIR" "$helper_tmp"
-chmod 0755 "$HELPER_DIR" "$helper_tmp"
-printf '%s ALL=(root) NOPASSWD: %s\n' "$PLUGIN_USER" "$HELPER" > "$sudoers_tmp"
-chown root:root "$sudoers_tmp"
-chmod 0440 "$sudoers_tmp"
-visudo -cf "$sudoers_tmp" >/dev/null 2>&1 || fail "sudoers 规则校验失败"
-mv -f "$helper_tmp" "$HELPER"
-mv -f "$sudoers_tmp" "$SUDOERS"
-
-cron_tmp="$CRON_FILE.new.$$"
-{
-  echo 'SHELL=/bin/sh'
-  echo 'PATH=/usr/sbin:/usr/bin:/sbin:/bin'
-  echo 'MAILTO=""'
-  printf '@reboot root /bin/sh -c '\''sleep 60; /bin/sh %s/files/boot.sh %s'\''\n' "$SRC_DIR" "$PLUGIN_USER"
-} > "$cron_tmp"
-chmod 0644 "$cron_tmp"
-mv -f "$cron_tmp" "$CRON_FILE"
-systemctl reload crond.service >/dev/null 2>&1 || true
+# The shared component owns sudo rules, boot registration and lifecycle locks.
 
 chown -R "$PLUGIN_USER:$PLUGIN_USER" "$PLUGIN_HOME" "$SRC_DIR" "$TMP_DIR"
 chown -h "$PLUGIN_USER:$PLUGIN_USER" "$PLUGIN_HOME/src" "$PLUGIN_HOME/tmp" "$WEB_LINK"
 chmod 0700 "$PLUGIN_HOME" "$SRC_DIR" "$TMP_DIR"
 chmod 0755 "$SRC_DIR/ui"
 
-runuser -u "$PLUGIN_USER" -- sudo -n "$HELPER" <<'EOF' >/dev/null
+runuser -u "$PLUGIN_USER" -- sudo -n "$HELPER" dockermanager <<'EOF' | jq -e '.ok == true' >/dev/null || fail "公共 Docker 权限组件自检失败"
 {"action":"system_summary"}
 EOF
 plugincenter -u "$PLUGIN_USER" -p "$PLUGIN_NAME" enable >/dev/null 2>&1 || true
