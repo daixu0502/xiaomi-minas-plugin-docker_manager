@@ -456,6 +456,7 @@
   }
   function showConfirm(title, message, buttonLabel, danger, callback) {
     confirmCallback = callback;
+    byId('confirmModal').classList.toggle('danger', Boolean(danger));
     byId('confirmTitle').textContent = title;
     byId('confirmMessage').textContent = message;
     byId('confirmAcceptButton').textContent = buttonLabel || '确认';

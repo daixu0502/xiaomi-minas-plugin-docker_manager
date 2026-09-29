@@ -61,7 +61,7 @@ printf '%s' "$body" | jq empty >/dev/null 2>&1 || json_error "请求不是有效
 request=$(printf '%s' "$body" | jq --arg action "$action" '. + {action:$action}') || json_error "无法处理请求"
 response=$(printf '%s' "$request" | sudo -n "$HELPER" 2>/dev/null) || json_error "无法调用 Docker 权限助手"
 printf '%s' "$response" | jq empty >/dev/null 2>&1 || json_error "权限助手返回了无法解析的数据"
-plugin_version=$(jq -r '.version // "1.0.24"' "$INFO_FILE" 2>/dev/null || printf '1.0.24')
+plugin_version=$(jq -r '.version // "1.0.25"' "$INFO_FILE" 2>/dev/null || printf '1.0.25')
 
 json_header
 printf '%s' "$response" | jq --arg pluginVersion "$plugin_version" '. + {pluginVersion:$pluginVersion}'

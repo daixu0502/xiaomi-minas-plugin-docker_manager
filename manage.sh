@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_NAME='dockermanager'
 PLUGIN_LABEL='docker'
-PLUGIN_VERSION='1.0.24'
+PLUGIN_VERSION='1.0.25'
 UNINSTALL_NOTE='保留 Docker 引擎、容器、镜像、网络和存储卷。'
 
 # Shared frontend; keep this section consistent across the four manage.sh files.
