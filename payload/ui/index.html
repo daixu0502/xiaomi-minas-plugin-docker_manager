@@ -7,20 +7,21 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111820" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#171a20" media="(prefers-color-scheme: dark)">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css?v=1.1.1&amp;ui=isolated-20260930">
-  <link rel="stylesheet" href="palette.css?v=1.1.1&amp;ui=isolated-20260930">
+  <link rel="stylesheet" href="style.css?v=1.1.2&amp;ui=unified-20260930">
+  <link rel="stylesheet" href="palette.css?v=1.1.2&amp;ui=unified-20260930">
 </head>
 <body><div data-minas-plugin="dockermanager"><div class="minas-plugin-body">
   <main id="shell" class="shell">
-    <header class="topbar">
+    <header class="topbar plugin-header">
       <div>
         <div class="eyebrow">XIAOMI SMART STORAGE</div>
-        <h1>docker manager</h1>
+        <h1>Docker Manager</h1>
       </div>
       <button id="refreshButton" class="icon-button refresh-control" type="button" aria-label="刷新"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M6.1 9a7 7 0 0 1 11.2-2.1L20 11M4 13l2.7 4.1A7 7 0 0 0 17.9 15"/></svg></button>
     </header>
+<section class="plugin-status"><div class="status-main"><span id="engineBadge" class="status-pill neutral"><i></i>正在连接</span><h2 class="status-title">Docker 引擎</h2></div><p id="engineSubtitle" class="status-description">正在读取设备信息…</p></section>
 
     <nav class="tabs" aria-label="功能页面">
       <button class="tab active" data-page="overview">概览</button>
@@ -30,19 +31,11 @@
     </nav>
 
     <section id="page-overview" class="page active">
-      <div class="hero-card">
-        <div>
-          <span id="engineBadge" class="status-pill neutral"><i></i>正在连接</span>
-          <h2>Docker 引擎</h2>
-          <p id="engineSubtitle">正在读取设备信息…</p>
-        </div>
-        <div class="docker-mark" aria-hidden="true"><span>▦</span></div>
-      </div>
       <div class="metric-grid">
-        <button class="metric-card" data-go="containers"><strong id="runningMetric">—</strong><span>运行中</span></button>
-        <button class="metric-card" data-go="containers"><strong id="stoppedMetric">—</strong><span>已停止</span></button>
-        <button class="metric-card" data-go="images"><strong id="imageMetric">—</strong><span>镜像</span></button>
-        <button class="metric-card" data-go="volumes"><strong id="volumeMetric">—</strong><span>存储卷</span></button>
+        <button class="metric-card" data-go="containers"><span>运行中</span><strong id="runningMetric">—</strong></button>
+        <button class="metric-card" data-go="containers"><span>已停止</span><strong id="stoppedMetric">—</strong></button>
+        <button class="metric-card" data-go="images"><span>镜像</span><strong id="imageMetric">—</strong></button>
+        <button class="metric-card" data-go="volumes"><span>存储卷</span><strong id="volumeMetric">—</strong></button>
       </div>
       <article class="panel">
         <div class="panel-heading"><div><h3>Docker 服务</h3><p>启动、停止或重启整个 Docker 引擎</p></div></div>
@@ -107,7 +100,7 @@
       <div id="volumeList" class="stack loading-row">正在读取…</div>
     </section>
 
-    <footer id="pluginVersion">插件版本 1.1.1</footer>
+    <footer id="pluginVersion">插件版本 1.1.2</footer>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden></div>
@@ -147,8 +140,8 @@
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="client-bridge.js?v=1.1.1&amp;ui=isolated-20260930"></script>
-  <script src="app.js?v=1.1.1&amp;ui=isolated-20260930"></script>
+  <script src="client-bridge.js?v=1.1.2&amp;ui=unified-20260930"></script>
+  <script src="app.js?v=1.1.2&amp;ui=unified-20260930"></script>
   <script>
     (function () {
       var document = window.XiaomiPluginClient.document;
