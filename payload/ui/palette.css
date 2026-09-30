@@ -1,291 +1,66 @@
-/* Shared mist-blue light palette. Keep copies in all five plugin packages aligned.
- * Colour-only overrides: no sizing, scrolling, modal or service changes.
- * Desktop remains light; mobile dark mode follows Android / iOS system preferences.
- */
-html.desktop-client {
-  --bg: #eef1f5;
-  --background: #eef1f5;
-  --surface: #fff;
-  --surface-solid: #fff;
-  --text: #243044;
-  --muted: #596579;
-  --line: #d5dce5;
-  --sidebar: #e5eaf0;
-  --shadow: 0 10px 30px rgba(36, 48, 68, .07);
-  background: var(--bg);
-}
-html.desktop-client body,
-html.desktop-client .desktop-frame { background: var(--bg); }
-html.desktop-client .topbar,
-html.desktop-client .section-heading,
-html.desktop-client .hero-copy { color: var(--text); }
-html.desktop-client .topbar .eyebrow,
-html.desktop-client .section-heading p,
-html.desktop-client .shell > footer { color: var(--muted); }
-/* Mihomo also defines a local muted token on its desktop header. */
-html.desktop-client .hero-copy { --muted: #596579; }
-html.desktop-client .topbar .icon-button {
-  color: var(--text);
-  background: var(--surface);
-  border-color: var(--line);
-}
-html.desktop-client .tabs,
-html.desktop-client .desktop-frame > .tabs {
-  background: var(--sidebar);
-  border-color: var(--line);
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-html.desktop-client .tabs .tab { color: var(--muted); }
-html.desktop-client .tabs .tab.active,
-html.desktop-client .desktop-frame > .tabs .tab.active {
-  color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #243044)))));
-  background: var(--surface);
-  box-shadow: 0 2px 6px rgba(36, 48, 68, .06);
-}
-html.desktop-client .panel,
-html.desktop-client .metric,
-html.desktop-client .metric-card,
-html.desktop-client .disk-card,
-html.desktop-client .share-card,
-html.desktop-client .hero-card { border-color: var(--line); }
-/* Keep coloured logo tiles, status badges and primary actions unchanged. */
-html.desktop-client .hero-card,
-html.desktop-client .hero:not(header) { background: var(--surface); }
-
-@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
-  html:not(.desktop-client) {
-    --bg: #eef1f5;
-    --background: #eef1f5;
-    --surface: #fff;
-    --surface-solid: #fff;
-    --text: #243044;
-    --muted: #596579;
-    --line: #d5dce5;
-    --sidebar: #e5eaf0;
-    --shadow: 0 10px 30px rgba(36, 48, 68, .07);
-    background: var(--bg);
-  }
-  html:not(.desktop-client) body,
-  html:not(.desktop-client) .desktop-frame { background: var(--bg); }
-  html:not(.desktop-client) .topbar,
-  html:not(.desktop-client) .section-heading,
-  html:not(.desktop-client) .hero-copy { color: var(--text); }
-  html:not(.desktop-client) .topbar .eyebrow,
-  html:not(.desktop-client) .section-heading p,
-  html:not(.desktop-client) .shell > footer { color: var(--muted); }
-  /* Mihomo also defines a local muted token on its desktop header. */
-  html:not(.desktop-client) .hero-copy { --muted: #596579; }
-  html:not(.desktop-client) .topbar .icon-button {
-    color: var(--text);
-    background: var(--surface);
-    border-color: var(--line);
-  }
-  html:not(.desktop-client) .tabs,
-  html:not(.desktop-client) .desktop-frame > .tabs {
-    background: var(--sidebar);
-    border-color: var(--line);
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  html:not(.desktop-client) .tabs .tab { color: var(--muted); }
-  html:not(.desktop-client) .tabs .tab.active,
-  html:not(.desktop-client) .desktop-frame > .tabs .tab.active {
-    color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #243044)))));
-    background: var(--surface);
-    box-shadow: 0 2px 6px rgba(36, 48, 68, .06);
-  }
-  html:not(.desktop-client) .panel,
-  html:not(.desktop-client) .metric,
-  html:not(.desktop-client) .metric-card,
-  html:not(.desktop-client) .disk-card,
-  html:not(.desktop-client) .share-card,
-  html:not(.desktop-client) .hero-card { border-color: var(--line); }
-  /* Keep coloured logo tiles, status badges and primary actions unchanged. */
-  html:not(.desktop-client) .hero-card,
-  html:not(.desktop-client) .hero:not(header) { background: var(--surface); }
-}
-
-/* Mobile WebViews follow the OS colour-scheme signal on Android and iOS.
- * Desktop deliberately keeps its light palette, even on a dark OS.
- */
-html.desktop-client { color-scheme: light; }
-@media (prefers-color-scheme: dark) {
-  html:not(.desktop-client) {
-    color-scheme: dark;
-    --disabled-bg: #303a46;
-    --disabled-text: #acb9c9;
-    --disabled-border: #485563;
-  }
-  html:not(.desktop-client),
-  html:not(.desktop-client) body { background: var(--bg); }
-  html:not(.desktop-client) .topbar,
-  html:not(.desktop-client) .section-heading { color: var(--text); }
-  html:not(.desktop-client) .topbar .eyebrow,
-  html:not(.desktop-client) .section-heading p,
-  html:not(.desktop-client) .shell > footer { color: var(--muted); }
-  html:not(.desktop-client) .topbar .icon-button {
-    color: var(--text);
-    background: var(--surface);
-    border-color: var(--line);
-  }
-  html:not(.desktop-client) .tabs {
-    background: var(--surface);
-    border-color: var(--line);
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  html:not(.desktop-client) .tabs .tab { color: var(--muted); }
-  html:not(.desktop-client) .tabs .tab.active {
-    color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #e6edf5)))));
-    background: var(--purple-soft, var(--teal-soft, var(--green-soft, var(--blue-soft, var(--soft, #243140)))));
-    box-shadow: none;
-  }
-  html:not(.desktop-client) .panel,
-  html:not(.desktop-client) .metric,
-  html:not(.desktop-client) .metric-card,
-  html:not(.desktop-client) .resource-card,
-  html:not(.desktop-client) .disk-card,
-  html:not(.desktop-client) .share-card { border-color: var(--line); }
-  html:not(.desktop-client) input::placeholder,
-  html:not(.desktop-client) textarea::placeholder { color: var(--muted); opacity: 1; }
-  html:not(.desktop-client) input { accent-color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #e6edf5))))); }
-  html:not(.desktop-client) body button:disabled {
-    color: var(--disabled-text) !important;
-    background: var(--disabled-bg) !important;
-    border-color: var(--disabled-border) !important;
-    opacity: 1 !important;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not(.desktop-client) {
-    --bg: #111820;
-    --background: #111820;
-    --surface: #1b2531;
-    --surface-solid: #1b2531;
-    --text: #e6edf5;
-    --muted: #acb9c9;
-    --line: #364658;
-    --blue: #64bdf7;
-    --blue-dark: #93d2ff;
-    --blue-soft: #173c58;
-    --success: #79deb0;
-    --warning: #f2ce86;
-    --danger: #ffabad;
-    --shadow: 0 10px 30px rgba(0, 0, 0, .18);
-  }
-  html:not(.desktop-client),
-  html:not(.desktop-client) body { background: var(--bg); }
-  html:not(.desktop-client) .hero-card,
-  html:not(.desktop-client) .detail-item,
-  html:not(.desktop-client) .modal,
-  html:not(.desktop-client) .modal-heading,
-  html:not(.desktop-client) .modal-actions,
-  html:not(.desktop-client) input,
-  html:not(.desktop-client) select,
-  html:not(.desktop-client) textarea,
-  html:not(.desktop-client) .loading-row,
-  html:not(.desktop-client) .empty-state {
-    color: var(--text);
-    background: var(--surface);
-    border-color: var(--line);
-  }
-  html:not(.desktop-client) .field-label,
-  html:not(.desktop-client) .form-grid label > span { color: var(--muted); }
-  html:not(.desktop-client) .meta-chip,
-  html:not(.desktop-client) .modal-heading .close-modal {
-    color: var(--muted);
-    background: var(--bg);
-  }
-  html:not(.desktop-client) .modal-handle { background: var(--line); }
-  html:not(.desktop-client) .action-button,
-  html:not(.desktop-client) .secondary-button {
-    color: var(--text);
-    background: var(--surface);
-    border-color: var(--line);
-  }
-  html:not(.desktop-client) .primary-button { color: #fff; background: #17679f; }
-  html:not(.desktop-client) .filter.active,
-  html:not(.desktop-client) .confirm-icon,
-  html:not(.desktop-client) .confirm-actions .secondary-button,
-  html:not(.desktop-client) .confirm-actions .primary-button {
-    color: var(--blue-dark);
-    background: var(--blue-soft);
-    border-color: var(--line);
-  }
-  html:not(.desktop-client) .danger-button,
-  html:not(.desktop-client) .confirm-modal.danger .confirm-icon,
-  html:not(.desktop-client) .badge.exited,
-  html:not(.desktop-client) .badge.dead {
-    color: var(--danger);
-    background: #41252d;
-    border-color: #64404a;
-  }
-  html:not(.desktop-client) .status-pill,
-  html:not(.desktop-client) .badge { color: var(--muted); background: var(--bg); }
-  html:not(.desktop-client) .status-pill.running,
-  html:not(.desktop-client) .badge.running { color: var(--success); background: #183b30; }
-  html:not(.desktop-client) .status-pill.stopped,
-  html:not(.desktop-client) .badge.paused { color: var(--warning); background: #3e321d; }
-}
-
-/* Readability: native CJK fonts, clear hierarchy and contrast; no CSS zoom. */
-html body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI",
-    "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif;
-  font-size: 15px;
-  -webkit-font-smoothing: auto;
-}
-html body .shell { font-size: 15px; }
-html body :is(p, .field-note, .field-label, .field-title, .form-body legend,
-  .form-body label span, .form-grid label > span, .selected-path, .security-note,
-  .warning-note, .empty-state, .loading) {
-  font-size: 14px;
-  line-height: 1.65;
-}
-html body :is(h1, h2, h3) { font-weight: 700; }
-html body :is(.field-label, .field-title, .form-grid label > span) { font-weight: 600; }
-html body button:not(.icon-button):not(.close-button):not(.dialog-close),
-html body :is(.share-actions a, .button) {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-html body :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]) {
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 400;
-}
-html body :is(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
-html body :is(.badge, .status-pill) {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-html body :is(.chip, .meta-chip, .file-copy span, .detail-item span,
-  .metric-card span, .metric span, .eyebrow, footer),
-html.desktop-client .shell :is(.chip, .meta-chip, .detail-item span,
-  .metric-card span, .eyebrow, .field-note, footer) {
-  font-size: 13px;
-  line-height: 1.6;
-}
-html body :is(.eyebrow, .chip, .meta-chip) { font-weight: 500; }
-html body :is(pre, code, #logText, #cleanupSamples) {
-  font-family: ui-monospace, "Cascadia Mono", Consolas, "Noto Sans Mono CJK SC", monospace;
-  font-size: 13px;
-  line-height: 1.7;
-}
-html.desktop-client { --text: #1f2b3d; --muted: #4b596d; }
-html.desktop-client .hero-copy { --muted: #4b596d; }
-@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
-  html:not(.desktop-client) { --text: #1f2b3d; --muted: #4b596d; }
-  html:not(.desktop-client) .hero-copy { --muted: #4b596d; }
-}
-@media (prefers-color-scheme: dark) {
-  html:not(.desktop-client) { --text: #edf2f8; --muted: #b8c4d3; }
-}
+/* Plugin-scoped CSS: never style the Xiaomi client host document. */
+[data-minas-plugin="dockermanager"].desktop-client{--bg: #eef1f5; --background: #eef1f5; --surface: #fff; --surface-solid: #fff; --text: #243044; --muted: #596579; --line: #d5dce5; --sidebar: #e5eaf0; --shadow: 0 10px 30px rgba(36, 48, 68, .07); background: var(--bg);}
+[data-minas-plugin="dockermanager"].desktop-client .minas-plugin-body, [data-minas-plugin="dockermanager"].desktop-client .desktop-frame{background: var(--bg);}
+[data-minas-plugin="dockermanager"].desktop-client .topbar, [data-minas-plugin="dockermanager"].desktop-client .section-heading, [data-minas-plugin="dockermanager"].desktop-client .hero-copy{color: var(--text);}
+[data-minas-plugin="dockermanager"].desktop-client .topbar .eyebrow, [data-minas-plugin="dockermanager"].desktop-client .section-heading p, [data-minas-plugin="dockermanager"].desktop-client .shell > footer{color: var(--muted);}
+[data-minas-plugin="dockermanager"].desktop-client .hero-copy{--muted: #596579;}
+[data-minas-plugin="dockermanager"].desktop-client .topbar .icon-button{color: var(--text); background: var(--surface); border-color: var(--line);}
+[data-minas-plugin="dockermanager"].desktop-client .tabs, [data-minas-plugin="dockermanager"].desktop-client .desktop-frame > .tabs{background: var(--sidebar); border-color: var(--line); box-shadow: none; backdrop-filter: none;}
+[data-minas-plugin="dockermanager"].desktop-client .tabs .tab{color: var(--muted);}
+[data-minas-plugin="dockermanager"].desktop-client .tabs .tab.active, [data-minas-plugin="dockermanager"].desktop-client .desktop-frame > .tabs .tab.active{color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #243044))))); background: var(--surface); box-shadow: rgba(36, 48, 68, 0.06) 0px 2px 6px;}
+[data-minas-plugin="dockermanager"].desktop-client .panel, [data-minas-plugin="dockermanager"].desktop-client .metric, [data-minas-plugin="dockermanager"].desktop-client .metric-card, [data-minas-plugin="dockermanager"].desktop-client .disk-card, [data-minas-plugin="dockermanager"].desktop-client .share-card, [data-minas-plugin="dockermanager"].desktop-client .hero-card{border-color: var(--line);}
+[data-minas-plugin="dockermanager"].desktop-client .hero-card, [data-minas-plugin="dockermanager"].desktop-client .hero:not(header){background: var(--surface);}
+@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {[data-minas-plugin="dockermanager"]:not(.desktop-client){--bg: #eef1f5; --background: #eef1f5; --surface: #fff; --surface-solid: #fff; --text: #243044; --muted: #596579; --line: #d5dce5; --sidebar: #e5eaf0; --shadow: 0 10px 30px rgba(36, 48, 68, .07); background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .minas-plugin-body, [data-minas-plugin="dockermanager"]:not(.desktop-client) .desktop-frame{background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar, [data-minas-plugin="dockermanager"]:not(.desktop-client) .section-heading, [data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-copy{color: var(--text);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar .eyebrow, [data-minas-plugin="dockermanager"]:not(.desktop-client) .section-heading p, [data-minas-plugin="dockermanager"]:not(.desktop-client) .shell > footer{color: var(--muted);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-copy{--muted: #596579;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar .icon-button{color: var(--text); background: var(--surface); border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs, [data-minas-plugin="dockermanager"]:not(.desktop-client) .desktop-frame > .tabs{background: var(--sidebar); border-color: var(--line); box-shadow: none; backdrop-filter: none;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs .tab{color: var(--muted);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs .tab.active, [data-minas-plugin="dockermanager"]:not(.desktop-client) .desktop-frame > .tabs .tab.active{color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #243044))))); background: var(--surface); box-shadow: rgba(36, 48, 68, 0.06) 0px 2px 6px;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .panel, [data-minas-plugin="dockermanager"]:not(.desktop-client) .metric, [data-minas-plugin="dockermanager"]:not(.desktop-client) .metric-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .disk-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .share-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-card{border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .hero:not(header){background: var(--surface);}}
+[data-minas-plugin="dockermanager"].desktop-client{color-scheme: light;}
+@media (prefers-color-scheme: dark) {[data-minas-plugin="dockermanager"]:not(.desktop-client){color-scheme: dark; --disabled-bg: #303a46; --disabled-text: #acb9c9; --disabled-border: #485563;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client), [data-minas-plugin="dockermanager"]:not(.desktop-client) .minas-plugin-body{background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar, [data-minas-plugin="dockermanager"]:not(.desktop-client) .section-heading{color: var(--text);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar .eyebrow, [data-minas-plugin="dockermanager"]:not(.desktop-client) .section-heading p, [data-minas-plugin="dockermanager"]:not(.desktop-client) .shell > footer{color: var(--muted);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .topbar .icon-button{color: var(--text); background: var(--surface); border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs{background: var(--surface); border-color: var(--line); box-shadow: none; backdrop-filter: none;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs .tab{color: var(--muted);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .tabs .tab.active{color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #e6edf5))))); background: var(--purple-soft, var(--teal-soft, var(--green-soft, var(--blue-soft, var(--soft, #243140))))); box-shadow: none;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .panel, [data-minas-plugin="dockermanager"]:not(.desktop-client) .metric, [data-minas-plugin="dockermanager"]:not(.desktop-client) .metric-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .resource-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .disk-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .share-card{border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) input::placeholder, [data-minas-plugin="dockermanager"]:not(.desktop-client) textarea::placeholder{color: var(--muted); opacity: 1;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) input{accent-color: var(--purple-dark, var(--teal-dark, var(--green-dark, var(--blue-dark, var(--accent, #e6edf5)))));}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .minas-plugin-body button:disabled{color: var(--disabled-text) !important; background: var(--disabled-bg) !important; border-color: var(--disabled-border) !important; opacity: 1 !important;}}
+@media (prefers-color-scheme: dark) {[data-minas-plugin="dockermanager"]:not(.desktop-client){--bg: #111820; --background: #111820; --surface: #1b2531; --surface-solid: #1b2531; --text: #e6edf5; --muted: #acb9c9; --line: #364658; --blue: #64bdf7; --blue-dark: #93d2ff; --blue-soft: #173c58; --success: #79deb0; --warning: #f2ce86; --danger: #ffabad; --shadow: 0 10px 30px rgba(0, 0, 0, .18);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client), [data-minas-plugin="dockermanager"]:not(.desktop-client) .minas-plugin-body{background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-card, [data-minas-plugin="dockermanager"]:not(.desktop-client) .detail-item, [data-minas-plugin="dockermanager"]:not(.desktop-client) .modal, [data-minas-plugin="dockermanager"]:not(.desktop-client) .modal-heading, [data-minas-plugin="dockermanager"]:not(.desktop-client) .modal-actions, [data-minas-plugin="dockermanager"]:not(.desktop-client) input, [data-minas-plugin="dockermanager"]:not(.desktop-client) select, [data-minas-plugin="dockermanager"]:not(.desktop-client) textarea, [data-minas-plugin="dockermanager"]:not(.desktop-client) .loading-row, [data-minas-plugin="dockermanager"]:not(.desktop-client) .empty-state{color: var(--text); background: var(--surface); border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .field-label, [data-minas-plugin="dockermanager"]:not(.desktop-client) .form-grid label > span{color: var(--muted);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .meta-chip, [data-minas-plugin="dockermanager"]:not(.desktop-client) .modal-heading .close-modal{color: var(--muted); background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .modal-handle{background: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .action-button, [data-minas-plugin="dockermanager"]:not(.desktop-client) .secondary-button{color: var(--text); background: var(--surface); border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .primary-button{color: rgb(255, 255, 255); background: rgb(23, 103, 159);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .filter.active, [data-minas-plugin="dockermanager"]:not(.desktop-client) .confirm-icon, [data-minas-plugin="dockermanager"]:not(.desktop-client) .confirm-actions .secondary-button, [data-minas-plugin="dockermanager"]:not(.desktop-client) .confirm-actions .primary-button{color: var(--blue-dark); background: var(--blue-soft); border-color: var(--line);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .danger-button, [data-minas-plugin="dockermanager"]:not(.desktop-client) .confirm-modal.danger .confirm-icon, [data-minas-plugin="dockermanager"]:not(.desktop-client) .badge.exited, [data-minas-plugin="dockermanager"]:not(.desktop-client) .badge.dead{color: var(--danger); background: rgb(65, 37, 45); border-color: rgb(100, 64, 74);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .status-pill, [data-minas-plugin="dockermanager"]:not(.desktop-client) .badge{color: var(--muted); background: var(--bg);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .status-pill.running, [data-minas-plugin="dockermanager"]:not(.desktop-client) .badge.running{color: var(--success); background: rgb(24, 59, 48);}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .status-pill.stopped, [data-minas-plugin="dockermanager"]:not(.desktop-client) .badge.paused{color: var(--warning); background: rgb(62, 50, 29);}}
+[data-minas-plugin="dockermanager"] .minas-plugin-body{font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Roboto, sans-serif; font-size: 15px; -webkit-font-smoothing: auto;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body .shell{font-size: 15px;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(p, .field-note, .field-label, .field-title, .form-body legend, .form-body label span, .form-grid label > span, .selected-path, .security-note, .warning-note, .empty-state, .loading){font-size: 14px; line-height: 1.65;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(h1, h2, h3){font-weight: 700;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(.field-label, .field-title, .form-grid label > span){font-weight: 600;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body button:not(.icon-button):not(.close-button):not(.dialog-close), [data-minas-plugin="dockermanager"] .minas-plugin-body :is(.share-actions a, .button){font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.45;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]){font-family: inherit; font-size: 16px; font-weight: 400;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(input, textarea)::placeholder{color: var(--muted); opacity: 1;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(.badge, .status-pill){font-size: 12px; font-weight: 600; line-height: 1.5;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(.chip, .meta-chip, .file-copy span, .detail-item span, .metric-card span, .metric span, .eyebrow, footer), [data-minas-plugin="dockermanager"].desktop-client .shell :is(.chip, .meta-chip, .detail-item span, .metric-card span, .eyebrow, .field-note, footer){font-size: 13px; line-height: 1.6;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(.eyebrow, .chip, .meta-chip){font-weight: 500;}
+[data-minas-plugin="dockermanager"] .minas-plugin-body :is(pre, code, #logText, #cleanupSamples){font-family: ui-monospace, "Cascadia Mono", Consolas, "Noto Sans Mono CJK SC", monospace; font-size: 13px; line-height: 1.7;}
+[data-minas-plugin="dockermanager"].desktop-client{--text: #1f2b3d; --muted: #4b596d;}
+[data-minas-plugin="dockermanager"].desktop-client .hero-copy{--muted: #4b596d;}
+@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {[data-minas-plugin="dockermanager"]:not(.desktop-client){--text: #1f2b3d; --muted: #4b596d;}
+[data-minas-plugin="dockermanager"]:not(.desktop-client) .hero-copy{--muted: #4b596d;}}
+@media (prefers-color-scheme: dark) {[data-minas-plugin="dockermanager"]:not(.desktop-client){--text: #edf2f8; --muted: #b8c4d3;}}

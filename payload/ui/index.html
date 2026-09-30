@@ -9,19 +9,17 @@
   <meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111820" media="(prefers-color-scheme: dark)">
   <title>docker</title>
-  <link rel="stylesheet" href="style.css?v=1.1.1">
-  <link rel="stylesheet" href="palette.css?v=1.1.1">
+  <link rel="stylesheet" href="style.css?v=1.1.1&amp;ui=isolated-20260930">
+  <link rel="stylesheet" href="palette.css?v=1.1.1&amp;ui=isolated-20260930">
 </head>
-<body>
+<body><div data-minas-plugin="dockermanager"><div class="minas-plugin-body">
   <main id="shell" class="shell">
     <header class="topbar">
       <div>
         <div class="eyebrow">XIAOMI SMART STORAGE</div>
         <h1>docker manager</h1>
       </div>
-      <button id="refreshButton" class="icon-button" type="button" aria-label="刷新">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M6.1 9a7 7 0 0 1 11.2-2.1L20 11M4 13l2.7 4.1A7 7 0 0 0 17.9 15"/></svg>
-      </button>
+      <button id="refreshButton" class="icon-button refresh-control" type="button" aria-label="刷新"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M6.1 9a7 7 0 0 1 11.2-2.1L20 11M4 13l2.7 4.1A7 7 0 0 0 17.9 15"/></svg></button>
     </header>
 
     <nav class="tabs" aria-label="功能页面">
@@ -149,10 +147,11 @@
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyText">正在处理…</span></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="client-bridge.js?v=1.1.1"></script>
-  <script src="app.js?v=1.1.1"></script>
+  <script src="client-bridge.js?v=1.1.1&amp;ui=isolated-20260930"></script>
+  <script src="app.js?v=1.1.1&amp;ui=isolated-20260930"></script>
   <script>
     (function () {
+      var document = window.XiaomiPluginClient.document;
       var root = document.documentElement, body = document.body;
       var dialogs = document.querySelectorAll('[aria-modal="true"]');
       var locked = false, savedX = 0, savedY = 0;
@@ -178,5 +177,5 @@
       sync();
     })();
   </script>
-</body>
+</div></div></body>
 </html>
