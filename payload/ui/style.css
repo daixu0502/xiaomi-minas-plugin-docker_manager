@@ -84,6 +84,8 @@
 [data-minas-plugin="dockermanager"] .check-row{align-items: center; gap: 10px; margin: 0px; display: flex !important;}
 [data-minas-plugin="dockermanager"] .check-row input{width: 19px; height: 19px;}
 [data-minas-plugin="dockermanager"] .check-row span{margin: 0px !important;}
+[data-minas-plugin="dockermanager"] .image-filter{font-size:13px;color:var(--muted);cursor:pointer;flex-wrap:nowrap;max-width:100%;}
+[data-minas-plugin="dockermanager"] .image-filter input{flex:0 0 19px;accent-color:var(--green);}
 [data-minas-plugin="dockermanager"] .modal-actions{position: sticky; bottom: 0px; display: flex; justify-content: flex-end; gap: 9px; padding: 13px 17px; border-top: 1px solid var(--line); background: rgba(246, 250, 251, 0.95); backdrop-filter: blur(12px);}
 [data-minas-plugin="dockermanager"] .text-modal{max-height: 82vh;}
 [data-minas-plugin="dockermanager"] .confirm-modal{max-width: 520px;}

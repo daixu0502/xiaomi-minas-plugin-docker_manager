@@ -6,6 +6,7 @@ var document = window.XiaomiPluginClient.document;
     page: 'overview',
     containers: [],
     images: [],
+    showIntermediate: false,
     volumes: [],
     engineRunning: false,
     containerFilter: 'all'
@@ -385,19 +386,26 @@ var document = window.XiaomiPluginClient.document;
     }).catch(function (error) { showToast(error.message, true); }).finally(function () { setBusy(false); });
   }
 
+  var imageRequest = 0;
   function loadImages() {
-    return api('image_list').then(function (data) {
+    var generation = ++imageRequest;
+    byId('imageSummary').textContent = '正在读取镜像…';
+    byId('imageList').className = 'stack loading-row';
+    byId('imageList').textContent = '正在读取…';
+    return api('image_list', { includeIntermediate: state.showIntermediate }).then(function (data) {
+      if (generation !== imageRequest) return;
       state.images = data.images || [];
       renderImages();
-    }).catch(function (error) { byId('imageList').className = 'empty-state'; byId('imageList').textContent = error.message; showToast(error.message, true); });
+    }).catch(function (error) { if (generation !== imageRequest) return; byId('imageSummary').textContent = '镜像读取失败，请刷新重试'; byId('imageList').className = 'empty-state'; byId('imageList').textContent = error.message; showToast(error.message, true); });
   }
   function renderImages() {
     var container = byId('imageList');
-    byId('imageSummary').textContent = state.images.length + ' 个本地镜像';
+    var intermediate = state.images.filter(function (item) { return item.intermediate; }).length;
+    byId('imageSummary').textContent = state.showIntermediate ? (state.images.length - intermediate) + ' 个普通镜像 · ' + intermediate + ' 个构建中间镜像' : state.images.length + ' 个普通镜像';
     if (!state.images.length) { container.className = 'empty-state'; container.textContent = '还没有镜像，可在上方输入名称拉取。'; return; }
     container.className = 'stack';
     container.innerHTML = state.images.map(function (item) {
-      var title = item.tags.length ? item.tags[0] : '<none>:<none>';
+      var title = item.tags.length ? item.tags[0] : (item.intermediate ? '构建中间镜像' : '<none>:<none>');
       var extra = item.tags.slice(1);
       return '<article class="resource-card"><div class="resource-head"><div class="resource-title"><h3>' + escapeHtml(title) + '</h3><p>' + escapeHtml(item.id) + ' · ' + escapeHtml(formatDate(item.created)) + '</p></div><span class="badge">' + escapeHtml(formatBytes(item.size)) + '</span></div><div class="resource-meta"><span class="meta-chip">' + escapeHtml(item.os + '/' + item.architecture) + '</span>' + extra.map(function (tag) { return '<span class="meta-chip">' + escapeHtml(tag) + '</span>'; }).join('') + '</div><div class="resource-actions"><button class="danger-button" data-image-remove="' + escapeHtml(item.fullId) + '" data-name="' + escapeHtml(title) + '">删除镜像</button></div></article>';
     }).join('');
@@ -517,6 +525,7 @@ var document = window.XiaomiPluginClient.document;
   byId('openCreateContainer').addEventListener('click', openCreateContainer);
   byId('createContainerButton').addEventListener('click', createContainer);
   byId('pullImageButton').addEventListener('click', pullImage);
+  byId('showIntermediateImages').addEventListener('change', function () { state.showIntermediate = this.checked; loadImages(); });
   byId('createVolumeButton').addEventListener('click', createVolume);
   byId('startDockerButton').addEventListener('click', function () { runEngineAction('start'); });
   byId('restartDockerButton').addEventListener('click', function () { runEngineAction('restart'); });

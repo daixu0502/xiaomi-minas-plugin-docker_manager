@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_NAME='dockermanager'
 PLUGIN_LABEL='docker'
-PLUGIN_VERSION='1.1.2'
+PLUGIN_VERSION='1.1.3'
 UNINSTALL_NOTE='保留 Docker 引擎、容器、镜像、网络和存储卷。'
 
 # Shared frontend; keep this section consistent across the four manage.sh files.
@@ -544,7 +544,7 @@ info_tmp="$TMP_DIR/INFO.$$"
 jq -n --arg version "$PLUGIN_VERSION" --arg abstract "$abstract" --argjson timestamp "$timestamp" --argjson size "$plugin_size" '{
   plugin:"dockermanager", name:"docker", id:19091, version:$version, tags:["tool"],
   timestamp:$timestamp, desc:"容器、镜像与存储卷管理", developer:"Local", publisher:"Local",
-  changelog:"统一六插件视觉规范、全宽桌面布局、手机深色主题与样式隔离",
+  changelog:"默认隐藏构建中间镜像，新增显示开关，首页数量按普通镜像统计",
   system:false, size:$size, port:"", type:"standard", forceupgrade:false,
   ext:{admin:true}, hotplug:[], abstract:$abstract
 }' > "$info_tmp"
