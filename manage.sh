@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_NAME='dockermanager'
 PLUGIN_LABEL='docker'
-PLUGIN_VERSION='1.1.4'
+PLUGIN_VERSION='1.1.5'
 UNINSTALL_NOTE='保留 Docker 引擎、容器、镜像、网络和存储卷。'
 
 # Shared frontend; keep this section consistent across the four manage.sh files.
@@ -494,6 +494,7 @@ TMP_PARENT="$POOL_PLUGIN_ROOT/plugintmp"
 SRC_DIR="$SRC_PARENT/$PLUGIN_NAME"
 TMP_DIR="$TMP_PARENT/$PLUGIN_NAME"
 SCRIPTS_DIR="$PLUGIN_HOME/scripts"
+VAR_DIR="$PLUGIN_HOME/var"
 LIST_FILE="/data/plugin/$PLUGIN_USER.list"
 WEB_ROOT=$(jq -r '.settings.nginx_plugin // "/data/plugin/www"' /etc/config/plugin)
 WEB_USER_DIR="$WEB_ROOT/$PLUGIN_USER"
@@ -508,8 +509,13 @@ CRON_FILE="/etc/cron.d/dockermanager-$PLUGIN_USER"
 
 [ -f "$LIST_FILE" ] || fail "未找到插件清单：$LIST_FILE"
 jq empty "$LIST_FILE" >/dev/null 2>&1 || fail "插件清单不是有效 JSON"
+WAS_ENABLED=$(jq -c --arg p "$PLUGIN_NAME" ' .[$p] as $e | if ($e.enable|type)=="boolean" then $e.enable else true end' "$LIST_FILE")
+WAS_STATUS=$(jq -r --arg p "$PLUGIN_NAME" '.[$p].status // "running"' "$LIST_FILE")
+
 mkdir -p "$PLUGIN_ROOT" "$SRC_PARENT" "$TMP_PARENT" "$PLUGIN_HOME" "$SCRIPTS_DIR" \
     "$WEB_USER_DIR" "$ICON_DIR" /etc/sudoers.d
+[ ! -L "$VAR_DIR" ] || fail "插件状态目录不能为符号链接"
+mkdir -p "$VAR_DIR"; chown "$PLUGIN_USER:$PLUGIN_USER" "$VAR_DIR"; chmod 0700 "$VAR_DIR"
 python3 "$PAYLOAD_DIR/common/component_admin.py" install --plugin "$PLUGIN_NAME" --user "$PLUGIN_USER" --payload "$PAYLOAD_DIR" --plugin-version "$PLUGIN_VERSION" || fail "公共权限组件安装失败"
 
 stage_src="$SRC_PARENT/.$PLUGIN_NAME.new.$$"
@@ -556,8 +562,8 @@ if ! python3 "$PAYLOAD_DIR/make_icon.py" "$ICON_FILE"; then cp "$PAYLOAD_DIR/ico
 chmod 0644 "$ICON_FILE"
 
 entry_file="$TMP_DIR/list-entry.$$"
-jq -n --slurpfile frontend "$SRC_DIR/ui/config" --slurpfile info "$PLUGIN_HOME/INFO" --argjson now "$timestamp" '{
-  resource:{mpk:"",icon:"",preview:null}, status:"running", install:true, upgrade:false, enable:true,
+jq -n --slurpfile frontend "$SRC_DIR/ui/config" --slurpfile info "$PLUGIN_HOME/INFO" --argjson now "$timestamp" --argjson enabled "$WAS_ENABLED" --arg status "$WAS_STATUS" '{
+  resource:{mpk:"",icon:"",preview:null}, status:$status, install:true, upgrade:false, enable:$enabled,
   changetime:$now, icon:"/icon/dockermanager.icon", progress:"100", frontend:$frontend[0],
   info:($info[0] | del(.abstract)), online:true
 }' > "$entry_file"
@@ -585,7 +591,7 @@ chmod 0755 "$SRC_DIR/ui"
 runuser -u "$PLUGIN_USER" -- sudo -n "$HELPER" dockermanager <<'EOF' | jq -e '.ok == true' >/dev/null || fail "公共 Docker 权限组件自检失败"
 {"action":"system_summary"}
 EOF
-plugincenter -u "$PLUGIN_USER" -p "$PLUGIN_NAME" enable >/dev/null 2>&1 || true
+if [ "$WAS_ENABLED" = true ]; then plugincenter -u "$PLUGIN_USER" -p "$PLUGIN_NAME" enable >/dev/null 2>&1 || true; fi
 
 echo "docker $PLUGIN_VERSION 已安装。"
 echo "APP 插件清单：$LIST_FILE"
