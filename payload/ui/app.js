@@ -131,7 +131,7 @@ var document = window.XiaomiPluginClient.document;
     });
   }
 
-  function loadOverview() {
+  function loadOverview(forceDisk) {
     byId('engineSubtitle').textContent = '正在读取设备信息…';
     return api('system_summary').then(function (data) {
       state.engineRunning = data.engineRunning !== false;
@@ -166,11 +166,13 @@ var document = window.XiaomiPluginClient.document;
         detailItem('容器总数', String(data.containers || 0)),
         detailItem('Docker 数据目录', data.dockerRootDir || '—')
       ].join('');
-      renderDisk(data.disk || []);
-      return api('volume_list').then(function (volumeData) {
+      byId('diskUsage').className='empty-state';byId('diskUsage').textContent='正在统计空间占用…';
+      var diskRequest=api('system_disk',{force:forceDisk===true}).then(function(result){renderDisk(result.disk||[]);}).catch(function(error){byId('diskUsage').textContent=error.message;});
+      var volumesRequest=api('volume_list').then(function (volumeData) {
         state.volumes = volumeData.volumes || [];
         byId('volumeMetric').textContent = state.volumes.length;
       }).catch(function () { byId('volumeMetric').textContent = '—'; });
+      return Promise.all([diskRequest,volumesRequest]);
     }).catch(function (error) {
       state.engineRunning = false;
       setEngineControls(false);
@@ -534,7 +536,7 @@ var document = window.XiaomiPluginClient.document;
   byId('restartAllContainersButton').addEventListener('click', function () { runBulkContainerAction('restart'); });
   byId('stopAllContainersButton').addEventListener('click', function () { runBulkContainerAction('stop'); });
   byId('confirmAcceptButton').addEventListener('click', acceptConfirm);
-  byId('refreshButton').addEventListener('click', function () { switchPage(state.page); });
+  byId('refreshButton').addEventListener('click', function () { if(state.page==='overview')loadOverview(true);else switchPage(state.page); });
   byId('pullImage').addEventListener('keydown', function (event) { if (event.key === 'Enter') pullImage(); });
   byId('volumeName').addEventListener('keydown', function (event) { if (event.key === 'Enter') createVolume(); });
 
