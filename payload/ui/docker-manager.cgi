@@ -1,9 +1,10 @@
 #!/bin/sh
 set -u
 
-SCRIPT_DIR=$(CDPATH= cd -P "$(dirname "$0")" && pwd -P)
+SCRIPT_FILE=$(readlink -f "$0") || exit 1
+SCRIPT_DIR=$(CDPATH= cd -P "$(dirname "$SCRIPT_FILE")" && pwd -P)
 plugin_user=$(printf '%s\n' "$SCRIPT_DIR" | sed -n 's#^/nas/pool[^/]*/\(u[0-9][0-9]*\)/plugin/pluginsrc/dockermanager/ui$#\1#p')
-if [ -z "$plugin_user" ]; then plugin_user=$(stat -c '%U' "$0" 2>/dev/null || true); fi
+if [ -z "$plugin_user" ]; then plugin_user=$(stat -c '%U' "$SCRIPT_FILE" 2>/dev/null || true); fi
 case "$plugin_user" in u[0-9]*) ;; *) plugin_user=$(id -un) ;; esac
 
 HELPER="/data/.minas-privileged/minas-helper"
@@ -62,7 +63,7 @@ printf '%s' "$body" | jq empty >/dev/null 2>&1 || json_error "请求不是有效
 request=$(printf '%s' "$body" | jq --arg action "$action" '. + {action:$action}') || json_error "无法处理请求"
 response=$(printf '%s' "$request" | sudo -n "$HELPER" dockermanager 2>/dev/null) || json_error "无法调用公共 Docker 权限助手"
 printf '%s' "$response" | jq empty >/dev/null 2>&1 || json_error "权限助手返回了无法解析的数据"
-plugin_version=$(jq -r '.version // "1.1.3"' "$INFO_FILE" 2>/dev/null || printf '1.1.3')
+plugin_version=$(jq -r '.version // "1.1.4"' "$INFO_FILE" 2>/dev/null || printf '1.1.4')
 
 json_header
 printf '%s' "$response" | jq --arg pluginVersion "$plugin_version" '. + {pluginVersion:$pluginVersion}'
