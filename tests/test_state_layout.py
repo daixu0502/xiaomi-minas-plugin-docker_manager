@@ -10,7 +10,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 import stat
 
-COMMON=Path(__file__).resolve().parents[1]/'payload/common'
+COMMON=Path(__file__).resolve().parents[1]/'payload/common/common'
 sys.path.insert(0,str(COMMON))
 import user_state_io as state
 
@@ -95,7 +95,7 @@ class UserStateTests(unittest.TestCase):
 class DockerStatusTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        loader=importlib.machinery.SourceFileLoader('layout_docker',str(COMMON/'docker-manager-helper'))
+        loader=importlib.machinery.SourceFileLoader('layout_docker',str(COMMON.parent/'modules/dockermanager/docker-manager-helper'))
         spec=importlib.util.spec_from_loader(loader.name,loader);cls.module=importlib.util.module_from_spec(spec);loader.exec_module(cls.module)
 
     def test_reboot_makes_old_running_status_interrupted(self):

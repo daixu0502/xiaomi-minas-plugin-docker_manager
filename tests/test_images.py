@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 root = Path(__file__).resolve().parents[1] / 'payload/common'
-sys.path.insert(0, str(root))
-loader = importlib.machinery.SourceFileLoader('image_helper', str(root/'docker-manager-helper'))
+sys.path.insert(0, str(root/'common'))
+loader = importlib.machinery.SourceFileLoader('image_helper', str(root/'modules/dockermanager/docker-manager-helper'))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 helper = importlib.util.module_from_spec(spec)
 loader.exec_module(helper)
