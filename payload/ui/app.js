@@ -97,7 +97,7 @@ var document = window.XiaomiPluginClient.document;
           throw new Error(response.ok ? '设备返回了无法解析的数据' : '设备请求超时或响应异常（HTTP ' + response.status + '）');
         }
         if (!data.ok) throw new Error(data.error || '操作失败');
-        if (data.pluginVersion) byId('pluginVersion').textContent = '插件版本 ' + data.pluginVersion + (data.helperVersion ? ' · 公共权限组件 ' + data.helperVersion : '');
+        if (data.pluginVersion) byId('pluginVersion').textContent = '插件版本 ' + data.pluginVersion + ' · 公共权限组件 ' + (data.helperVersion || '不可用');
         return data;
       });
     });
